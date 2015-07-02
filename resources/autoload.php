@@ -22,7 +22,7 @@ spl_autoload_register(
             return;
         }
         $relative_class = substr($class, $len);
-        $file = dirname(__DIR__).'/'.str_replace('\\', '/', $relative_class).'.php';
+        $file = dirname(dirname(__DIR__)).'/'.str_replace('\\', '/', $relative_class).'.php';
         if (file_exists($file)) {
             require $file;
         }
