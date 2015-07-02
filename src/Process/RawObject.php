@@ -128,14 +128,17 @@ abstract class RawObject
                 }
                 $chr = $this->pdfdata[$strpos];
                 switch ($chr) {
-                    case '\\': // REVERSE SOLIDUS (5Ch) (Backslash)
+                    case '\\':
+                        // REVERSE SOLIDUS (5Ch) (Backslash)
                         // skip next character
                         ++$strpos;
                         break;
-                    case '(': // LEFT PARENHESIS (28h)
+                    case '(':
+                        // LEFT PARENHESIS (28h)
                         ++$open_bracket;
                         break;
-                    case ')': // RIGHT PARENTHESIS (29h)
+                    case ')':
+                        // RIGHT PARENTHESIS (29h)
                         --$open_bracket;
                         break;
                 }
