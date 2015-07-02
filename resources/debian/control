@@ -1,4 +1,4 @@
-Source: php-tc-lib-pdf-parser
+Source: php-tecnickcom-tc-lib-pdf-parser
 Maintainer: Nicola Asuni <info@tecnick.com>
 Section: php
 Priority: optional
@@ -7,8 +7,9 @@ Standards-Version: 3.9.5
 Homepage: https://github.com/tecnickcom/tc-lib-pdf-parser
 Vcs-Git: https://github.com/tecnickcom/tc-lib-pdf-parser.git
 
-Package: php-tc-lib-pdf-parser
+Package: php-tecnickcom-tc-lib-pdf-parser
+Provides: php-tc-lib-pdf-parser
 Architecture: all
-Recommends: php5
+Depends: php5 (>= 5.3.3), php-tecnickcom-tc-lib-pdf-filter (>= 1.1.0)
 Description: PHP PDF Parser Library
  PHP library to parse PDF documents.

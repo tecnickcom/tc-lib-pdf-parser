@@ -43,9 +43,11 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     {
         foreach ($sdata as $row) {
             switch ($row[0]) {
-                case 0: // (f) linked list of free objects
+                case 0:
+                    // (f) linked list of free objects
                     break;
-                case 1: // (n) objects that are in use but are not compressed
+                case 1:
+                    // (n) objects that are in use but are not compressed
                     // create unique object index: [object number]_[generation number]
                     $index = $obj_num.'_'.$row[2];
                     // check if object already exist
@@ -54,13 +56,15 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                         $xref['xref'][$index] = $row[1];
                     }
                     break;
-                case 2: // compressed objects
+                case 2:
+                    // compressed objects
                     // $row[1] = object number of the object stream in which this object is stored
                     // $row[2] = index of this object within the object stream
                     $index = $row[1].'_0_'.$row[2];
                     $xref['xref'][$index] = -1;
                     break;
-                default: // null objects
+                default:
+                    // null objects
                     break;
             }
             ++$obj_num;
@@ -96,22 +100,28 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                     $row_upleft = $prev_row[($jdx - 1)];
                 }
                 switch ($predictor) {
-                    case 10: // PNG prediction (on encoding, PNG None on all rows)
+                    case 10:
+                        // PNG prediction (on encoding, PNG None on all rows)
                         $ddata[$key][$jdx] = $row[$idx];
                         break;
-                    case 11: // PNG prediction (on encoding, PNG Sub on all rows)
+                    case 11:
+                        // PNG prediction (on encoding, PNG Sub on all rows)
                         $ddata[$key][$jdx] = (($row[$idx] + $row_left) & 0xff);
                         break;
-                    case 12: // PNG prediction (on encoding, PNG Up on all rows)
+                    case 12:
+                        // PNG prediction (on encoding, PNG Up on all rows)
                         $ddata[$key][$jdx] = (($row[$idx] + $row_up) & 0xff);
                         break;
-                    case 13: // PNG prediction (on encoding, PNG Average on all rows)
+                    case 13:
+                        // PNG prediction (on encoding, PNG Average on all rows)
                         $ddata[$key][$jdx] = (($row[$idx] + (($row_left + $row_up) / 2)) & 0xff);
                         break;
-                    case 14: // PNG prediction (on encoding, PNG Paeth on all rows)
+                    case 14:
+                        // PNG prediction (on encoding, PNG Paeth on all rows)
                         $this->minDistance($ddata, $row, $idx, $jdx, $row_left, $row_up, $row_upleft);
                         break;
-                    default: // PNG prediction (on encoding, PNG optimum)
+                    default:
+                        // PNG prediction (on encoding, PNG optimum)
                         throw new PPException('Unknown PNG predictor');
                         break;
                 }
