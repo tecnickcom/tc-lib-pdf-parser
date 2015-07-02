@@ -65,7 +65,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
     public function __construct($cfg = array())
     {
         if (isset($cfg['ignore_filter_errors'])) {
-            $this->cfg['ignore_filter_errors'] = boolval($cfg['ignore_filter_errors']);
+            $this->cfg['ignore_filter_errors'] = ($cfg['ignore_filter_errors'] ? true : false);
         }
     }
 
