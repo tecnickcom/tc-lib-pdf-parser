@@ -84,7 +84,7 @@ Create a composer.json in your projects root-directory:
 ```json
 {
     "require": {
-        "tecnick.com/tc-lib-pdf-parser": "dev-master"
+        "tecnickcom/tc-lib-pdf-parser": "dev-master"
     },
     "repositories": [
         {
