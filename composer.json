@@ -1,5 +1,5 @@
 {
-    "name": "tecnick.com/tc-lib-pdf-parser",
+    "name": "tecnickcom/tc-lib-pdf-parser",
     "description": "PHP library to parse PDF documents",
     "type": "library",
     "homepage": "http://www.tecnick.com",
@@ -14,7 +14,7 @@
     ],
     "require": {
         "php": ">=5.3.3",
-        "tecnick.com/tc-lib-pdf-filter": "dev-master"
+        "tecnickcom/tc-lib-pdf-filter": "dev-master"
     },
     "require-dev": {
         "phpunit/phpunit": "4.7.*",
