@@ -13,12 +13,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/tecnickcom/tc-lib-pdf-filter.git",
-                "reference": "3e9a5d6115d82c2d541b7b0be4ac6b7d5cb6d938"
+                "reference": "0f173b846ba09c006d64475ea7668f49ffb40d6d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/tecnickcom/tc-lib-pdf-filter/zipball/3e9a5d6115d82c2d541b7b0be4ac6b7d5cb6d938",
-                "reference": "3e9a5d6115d82c2d541b7b0be4ac6b7d5cb6d938",
+                "url": "https://api.github.com/repos/tecnickcom/tc-lib-pdf-filter/zipball/0f173b846ba09c006d64475ea7668f49ffb40d6d",
+                "reference": "0f173b846ba09c006d64475ea7668f49ffb40d6d",
                 "shasum": ""
             },
             "require": {
@@ -60,10 +60,10 @@
                 "tc-lib-pdf-filter"
             ],
             "support": {
-                "source": "https://github.com/tecnickcom/tc-lib-pdf-filter/tree/1.1.12",
+                "source": "https://github.com/tecnickcom/tc-lib-pdf-filter/tree/1.1.14",
                 "issues": "https://github.com/tecnickcom/tc-lib-pdf-filter/issues"
             },
-            "time": "2015-11-19 18:20:28"
+            "time": "2015-11-20 14:56:57"
         }
     ],
     "packages-dev": [
