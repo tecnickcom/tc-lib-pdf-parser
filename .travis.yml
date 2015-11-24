@@ -13,8 +13,6 @@ php:
 
 matrix:
   allow_failures:
-    - php: 7.0
-    - php: hhvm
     - php: nightly
 
 before_install:
@@ -42,4 +40,4 @@ after_script:
  - "echo 'src_dir: src' > .coveralls.yml"
  - "echo 'coverage_clover: target/coverage/coverage.xml' >> .coveralls.yml"
  - "echo 'json_path: target/coverage/coveralls-upload.json' >> .coveralls.yml"
- - php vendor/bin/coveralls -v
+ - if [ "$TRAVIS_PHP_VERSION" = "5.6" ]; then php vendor/bin/coveralls -v; fi;
