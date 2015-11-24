@@ -2,6 +2,15 @@ language: php
 
 sudo: false
 
+branches:
+  except:
+    - release
+
+branches:
+  only:
+    - master
+    - develop
+
 php:
   - 5.3
   - 5.4
