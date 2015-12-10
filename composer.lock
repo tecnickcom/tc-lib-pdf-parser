@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "0a64a5aa98e49c616a86ba9add4cf913",
-    "content-hash": "2142a8dd32532784ec8d2e81d6576b8f",
+    "hash": "cbbb1311ec710585062aef0d98a444db",
+    "content-hash": "e0df49225ca253fb1bece2b54e1c66e9",
     "packages": [
         {
             "name": "tecnickcom/tc-lib-pdf-filter",
@@ -13,12 +13,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/tecnickcom/tc-lib-pdf-filter.git",
-                "reference": "ef4918affe8e4cf4b53c7f1c50480dae4f431c87"
+                "reference": "0e6e9a0b72a166ca7b9aa2d04494ebf21d44cea5"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/tecnickcom/tc-lib-pdf-filter/zipball/ef4918affe8e4cf4b53c7f1c50480dae4f431c87",
-                "reference": "ef4918affe8e4cf4b53c7f1c50480dae4f431c87",
+                "url": "https://api.github.com/repos/tecnickcom/tc-lib-pdf-filter/zipball/0e6e9a0b72a166ca7b9aa2d04494ebf21d44cea5",
+                "reference": "0e6e9a0b72a166ca7b9aa2d04494ebf21d44cea5",
                 "shasum": ""
             },
             "require": {
@@ -30,7 +30,7 @@
                 "pdepend/pdepend": "2.2.*",
                 "phploc/phploc": "2.1.*",
                 "phpmd/phpmd": "2.3.*",
-                "phpunit/phpunit": "4.8.*",
+                "phpunit/phpunit": "4.8.19",
                 "sebastian/phpcpd": "2.0.*",
                 "squizlabs/php_codesniffer": "2.3.*"
             },
@@ -60,10 +60,10 @@
                 "tc-lib-pdf-filter"
             ],
             "support": {
-                "source": "https://github.com/tecnickcom/tc-lib-pdf-filter/tree/1.1.23",
+                "source": "https://github.com/tecnickcom/tc-lib-pdf-filter/tree/1.1.24",
                 "issues": "https://github.com/tecnickcom/tc-lib-pdf-filter/issues"
             },
-            "time": "2015-12-10 19:27:28"
+            "time": "2015-12-10 20:41:43"
         }
     ],
     "packages-dev": [
