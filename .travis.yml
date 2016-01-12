@@ -31,7 +31,7 @@ before_install:
 
 before_script:
   - composer install --no-interaction
-  - composer require satooshi/php-coveralls:dev-master --no-interaction
+  - if [ "$TRAVIS_PHP_VERSION" = "5.6" ]; then composer require satooshi/php-coveralls:dev-master --no-interaction; fi
 
 script:
   - make qa_all

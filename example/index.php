@@ -6,7 +6,7 @@
  * @category    Library
  * @package     PdfParser
  * @author      Nicola Asuni <info@tecnick.com>
- * @copyright   2011-2015 Nicola Asuni - Tecnick.com LTD
+ * @copyright   2011-2016 Nicola Asuni - Tecnick.com LTD
  * @license     http://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
  * @link        https://github.com/tecnickcom/tc-lib-color
  *
@@ -32,4 +32,4 @@ $pdf = new \Com\Tecnick\Pdf\Parser\Parser($cfg);
 $data = $pdf->parse($rawdata);
 
 // display data
-var_export($data);
+var_dump($data);

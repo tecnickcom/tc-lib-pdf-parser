@@ -6,7 +6,7 @@
  * @category    Library
  * @package     PdfParser
  * @author      Nicola Asuni <info@tecnick.com>
- * @copyright   2011-2015 Nicola Asuni - Tecnick.com LTD
+ * @copyright   2011-2016 Nicola Asuni - Tecnick.com LTD
  * @license     http://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
  * @link        https://github.com/tecnickcom/tc-lib-pdf-parser
  *
@@ -40,6 +40,13 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
     protected $xref = array();
 
     /**
+     * Store the processed offsets
+     *
+     * @var array
+     */
+    protected $mrkoff = array();
+
+    /**
      * Get Cross-Reference (xref) table and trailer data from PDF document data.
      *
      * @param int   $offset Xref offset (if know).
@@ -49,6 +56,10 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
      */
     protected function getXrefData($offset = 0, $xref = array())
     {
+        if (in_array($offset, $this->mrkoff)) {
+            throw new PPException('LOOP: this XRef offset has been already processed');
+        }
+        $this->mrkoff[] = $offset;
         if ($offset == 0) {
             // find last startxref
             if (preg_match_all(
@@ -62,9 +73,9 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
             }
             $matches = array_pop($matches);
             $startxref = $matches[1];
-        } elseif (strpos($this->pdfdata, 'xref', $offset) == $offset) {
+        } elseif (($pos = strpos($this->pdfdata, 'xref', $offset)) <= ($offset + 4)) {
             // Already pointing at the xref table
-            $startxref = $offset;
+            $startxref = $pos;
         } elseif (preg_match('/([0-9]+[\s][0-9]+[\s]obj)/i', $this->pdfdata, $matches, PREG_OFFSET_CAPTURE, $offset)) {
             // Cross-Reference Stream object
             $startxref = $offset;
