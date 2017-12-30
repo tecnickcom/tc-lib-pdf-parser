@@ -99,15 +99,15 @@ Create a composer.json in your projects root-directory:
 ```json
 {
     "require": {
-        "tecnickcom/tc-lib-pdf-parser": "dev-master"
-    },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "git@github.com:tecnickcom/tc-lib-pdf-parser.git"
-        }
-    ]
+        "tecnickcom/tc-lib-pdf-parser": "^2.3"
+    }
 }
+```
+
+Or add to an existing project with: 
+
+```bash
+composer require tecnickcom/tc-lib-pdf-parser ^2.3
 ```
 
 
