@@ -119,8 +119,11 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
         // ignore leading zeros
         $offset += strspn($this->pdfdata, '0', $offset);
         if (strpos($this->pdfdata, $objref, $offset) != $offset) {
-            // an indirect reference to an undefined object shall be considered a reference to the null object
-            return array('null', 'null', $offset);
+            $offset++;
+            if (strpos($this->pdfdata, $objref, $offset) != $offset) {
+                // an indirect reference to an undefined object shall be considered a reference to the null object
+                return array('null', 'null', $offset);
+            }
         }
         // starting position of object content
         $offset += strlen($objref);
