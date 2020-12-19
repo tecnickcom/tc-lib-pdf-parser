@@ -30,22 +30,15 @@ use PHPUnit\Framework\TestCase;
  */
 class ParserTest extends TestCase
 {
-    protected $obj = null;
-
-    public function setUp()
-    {
-        //$this->markTestSkipped(); // skip this test
-        $cfg = array('ignore_filter_errors' => true);
-        $this->obj = new \Com\Tecnick\Pdf\Parser\Parser($cfg);
-    }
-    
     /**
      * @dataProvider getParseProvider
      */
     public function testParse($filename, $hash)
     {
+        $cfg = array('ignore_filter_errors' => true);
         $rawdata = file_get_contents($filename);
-        $data = $this->obj->parse($rawdata);
+        $testObj = new \Com\Tecnick\Pdf\Parser\Parser($cfg);
+        $data = $testObj->parse($rawdata);
         $this->assertEquals($hash, md5(serialize($data)));
     }
 

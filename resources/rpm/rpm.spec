@@ -18,7 +18,7 @@ BuildArch: noarch
 
 Requires:  php(language) >= 5.4.0
 Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) < 2.0.0
-Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) >= 1.3.8
+Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) >= 1.3.11
 Requires:  php-pcre
 
 Provides:  php-composer(%{c_vendor}/%{gh_project}) = %{version}
@@ -28,7 +28,7 @@ Provides:  php-%{gh_project} = %{version}
 PHP library to parse PDF documents.
 
 %build
-(cd %{_current_directory} && make build)
+#(cd %{_current_directory} && make build)
 
 %install
 rm -rf $RPM_BUILD_ROOT
@@ -36,7 +36,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %clean
 rm -rf $RPM_BUILD_ROOT
-(cd %{_current_directory} && make clean)
+#(cd %{_current_directory} && make clean)
 
 %files
 %attr(-,root,root) %{_libpath}
@@ -45,7 +45,7 @@ rm -rf $RPM_BUILD_ROOT
 #%config(noreplace) %{_configpath}*
 
 %changelog
-* Tue Jul 02 2015 Nicola Asuni <info@tecnick.com> 2.1.0-1
+* Thu Jul 02 2015 Nicola Asuni <info@tecnick.com> 2.1.0-1
 - Changed package name, add provides section
 * Tue May 05 2015 Nicola Asuni <info@tecnick.com> 2.0.0-1
 - Initial Commit
