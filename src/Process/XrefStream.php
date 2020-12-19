@@ -118,7 +118,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                         break;
                     case 14:
                         // PNG prediction (on encoding, PNG Paeth on all rows)
-                        $this->minDistance($ddata, $row, $idx, $jdx, $row_left, $row_up, $row_upleft);
+                        $this->minDistance($ddata, $key, $row, $idx, $jdx, $row_left, $row_up, $row_upleft);
                         break;
                     default:
                         // PNG prediction (on encoding, PNG optimum)
@@ -141,7 +141,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * @param int   $row_up
      * @param int   $row_upleft
      */
-    protected function minDistance(&$ddata, $row, $idx, $jdx, $row_left, $row_up, $row_upleft)
+    protected function minDistance(&$ddata, $key, $row, $idx, $jdx, $row_left, $row_up, $row_upleft)
     {
         // initial estimate
         $pos = ($row_left + $row_up - $row_upleft);
@@ -212,7 +212,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                     $this->processXrefDecodeParms($sarr, $key, $columns);
                     break;
             }
-            $this->processXrefTypeFt($val[1], $sarr, $xref, $filltrailer);
+            $this->processXrefTypeFt($val[1], $sarr, $key, $xref, $filltrailer);
         }
     }
 
@@ -258,7 +258,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * @param array  $xref
      * @param bool   $filltrailer
      */
-    protected function processXrefTypeFt($type, $sarr, &$xref, $filltrailer)
+    protected function processXrefTypeFt($type, $sarr, $key, &$xref, $filltrailer)
     {
         if (!$filltrailer) {
             return;
@@ -275,7 +275,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                 $xref['trailer']['id'][1] = $sarr[($key + 1)][1][1][1];
                 break;
             default:
-                $this->processXrefObjref($type, $sarr, $xref);
+                $this->processXrefObjref($type, $sarr, $key, $xref);
                 break;
         }
     }
@@ -287,7 +287,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * @param array  $sarr
      * @param array  $xref
      */
-    protected function processXrefObjref($type, $sarr, &$xref)
+    protected function processXrefObjref($type, $sarr, $key, &$xref)
     {
         if (!isset($sarr[($key + 1)]) || ($sarr[($key + 1)][0] !== 'objref')) {
             return;
