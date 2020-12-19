@@ -77,6 +77,9 @@ PHP=$(shell which php)
 # Composer executable (disable APC to as a work-around of a bug)
 COMPOSER=$(PHP) -d "apc.enable_cli=0" $(shell which composer)
 
+# phpDocumentor executable file
+PHPDOC=$(shell which phpDocumentor)
+
 # --- MAKE TARGETS ---
 
 # Display general help about this command
