@@ -17,8 +17,6 @@
 * **license**     http://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
 * **link**        https://github.com/tecnickcom/tc-lib-pdf-parser
 * **SRC DOC**     https://tcpdf.org/docs/srcdoc/tc-lib-pdf-parser
-* **RPM**         https://bintray.com/tecnickcom/rpm/tc-lib-pdf-parser
-* **DEB**         https://bintray.com/tecnickcom/deb/tc-lib-pdf-parser
 
 ## Description
 
@@ -104,7 +102,6 @@ When this library is installed using an RPM or DEB package, you can use it your 
 require_once ('/usr/share/php/Com/Tecnick/Pdf/Parser/autoload.php');
 ```
 
-**NOTE:** Updated RPM and Debian packages of this library can be downloaded from: https://bintray.com/tecnickcom
 
 
 ## Developer(s) Contact
