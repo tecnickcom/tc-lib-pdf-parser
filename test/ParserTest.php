@@ -42,7 +42,7 @@ class ParserTest extends TestCase
         $this->assertEquals($hash, md5(serialize($data)));
     }
 
-    public function getParseProvider()
+    public static function getParseProvider()
     {
         return array(
             array('resources/test/example_005.pdf', 'b65259e9c2864e707b10495e64c71363'),
