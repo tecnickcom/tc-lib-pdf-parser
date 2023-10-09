@@ -1,4 +1,5 @@
 <?php
+
 /**
  * Parser.php
  *
@@ -15,7 +16,7 @@
 
 namespace Com\Tecnick\Pdf\Parser;
 
-use \Com\Tecnick\Pdf\Parser\Exception as PPException;
+use Com\Tecnick\Pdf\Parser\Exception as PPException;
 
 /**
  * Com\Tecnick\Pdf\Parser\Parser
@@ -113,9 +114,9 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
     {
         $obj = explode('_', $obj_ref);
         if (($obj === false) || (count($obj) != 2)) {
-            throw new PPException('Invalid object reference: '.$obj);
+            throw new PPException('Invalid object reference: ' . $obj);
         }
-        $objref = $obj[0].' '.$obj[1].' obj';
+        $objref = $obj[0] . ' ' . $obj[1] . ' obj';
         // ignore leading zeros
         $offset += strspn($this->pdfdata, '0', $offset);
         if (strpos($this->pdfdata, $objref, $offset) != $offset) {
@@ -151,7 +152,8 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
             $element = $this->getRawObject($offset);
             $offset = $element[2];
             // decode stream using stream's dictionary information
-            if ($decoding
+            if (
+                $decoding
                 && ($element[0] == 'stream')
                 && (isset($objdata[($idx - 1)][0]))
                 && ($objdata[($idx - 1)][0] == '<<')
@@ -279,7 +281,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
         // decode the stream
         $errorfilters = array();
         try {
-            $filter = new \Com\Tecnick\Pdf\Filter\Filter;
+            $filter = new \Com\Tecnick\Pdf\Filter\Filter();
             $stream = $filter->decodeAll($filters, $stream);
         } catch (\Com\Tecnick\Pdf\Filter\Exception $e) {
             if ($this->cfg['ignore_filter_errors']) {

@@ -2,10 +2,10 @@
 *PHP library to parse PDF documents*
 
 [![Latest Stable Version](https://poser.pugx.org/tecnickcom/tc-lib-pdf-parser/version)](https://packagist.org/packages/tecnickcom/tc-lib-pdf-parser)
-[![Master Build Status](https://secure.travis-ci.org/tecnickcom/tc-lib-pdf-parser.png?branch=main)](https://travis-ci.org/tecnickcom/tc-lib-pdf-parser?branch=main)
-[![Master Coverage Status](https://coveralls.io/repos/tecnickcom/tc-lib-pdf-parser/badge.svg?branch=main&service=github)](https://coveralls.io/github/tecnickcom/tc-lib-pdf-parser?branch=main)
+![Build](https://github.com/tecnickcom/tc-lib-pdf-parser/actions/workflows/check.yml/badge.svg)
+[![Coverage](https://coveralls.io/repos/tecnickcom/tc-lib-pdf-parser/badge.svg?branch=main&service=github)](https://coveralls.io/github/tecnickcom/tc-lib-pdf-parser?branch=main)
 [![License](https://poser.pugx.org/tecnickcom/tc-lib-pdf-parser/license)](https://packagist.org/packages/tecnickcom/tc-lib-pdf-parser)
-[![Total Downloads](https://poser.pugx.org/tecnickcom/tc-lib-pdf-parser/downloads)](https://packagist.org/packages/tecnickcom/tc-lib-pdf-parser)
+[![Downloads](https://poser.pugx.org/tecnickcom/tc-lib-pdf-parser/downloads)](https://packagist.org/packages/tecnickcom/tc-lib-pdf-parser)
 
 [![Donate via PayPal](https://img.shields.io/badge/donate-paypal-87ceeb.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&currency_code=GBP&business=paypal@tecnick.com&item_name=donation%20for%20tc-lib-pdf-parser%20project)
 *Please consider supporting this project by making a donation via [PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&currency_code=GBP&business=paypal@tecnick.com&item_name=donation%20for%20tc-lib-pdf-parser%20project)*
@@ -13,7 +13,7 @@
 * **category**    Library
 * **package**     \Com\Tecnick\Pdf\Parser
 * **author**      Nicola Asuni <info@tecnick.com>
-* **copyright**   2015-2022 Nicola Asuni - Tecnick.com LTD
+* **copyright**   2015-2023 Nicola Asuni - Tecnick.com LTD
 * **license**     http://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
 * **link**        https://github.com/tecnickcom/tc-lib-pdf-parser
 * **SRC DOC**     https://tcpdf.org/docs/srcdoc/tc-lib-pdf-parser

@@ -1,4 +1,5 @@
 <?php
+
 /**
  * RawObject.php
  *
@@ -15,7 +16,7 @@
 
 namespace Com\Tecnick\Pdf\Parser\Process;
 
-use \Com\Tecnick\Pdf\Parser\Exception as PPException;
+use Com\Tecnick\Pdf\Parser\Exception as PPException;
 
 /**
  * Com\Tecnick\Pdf\Parser\Process\RawObject
@@ -72,7 +73,7 @@ abstract class RawObject
             '>' => 'Angular',     // \x3E GREATER-THAN SIGN
         );
         if (isset($map[$char])) {
-            $method = 'process'.$map[$char];
+            $method = 'process' . $map[$char];
             $this->$method($char, $offset, $objtype, $objval);
         } else {
             if ($this->processDefaultName($offset, $objtype, $objval) === false) {
@@ -95,11 +96,12 @@ abstract class RawObject
     {
         $objtype = $char;
         ++$offset;
-        if (preg_match(
-            '/^([^\x00\x09\x0a\x0c\x0d\x20\s\x28\x29\x3c\x3e\x5b\x5d\x7b\x7d\x2f\x25]+)/',
-            substr($this->pdfdata, $offset, 256),
-            $matches
-        ) == 1
+        if (
+            preg_match(
+                '/^([^\x00\x09\x0a\x0c\x0d\x20\s\x28\x29\x3c\x3e\x5b\x5d\x7b\x7d\x2f\x25]+)/',
+                substr($this->pdfdata, $offset, 256),
+                $matches
+            ) == 1
         ) {
             $objval = $matches[1]; // unescaped value
             $offset += strlen($objval);
@@ -189,7 +191,7 @@ abstract class RawObject
     {
         if (isset($this->pdfdata[($offset + 1)]) && ($this->pdfdata[($offset + 1)] == $char)) {
             // dictionary object
-            $objtype = $char.$char;
+            $objtype = $char . $char;
             $offset += 2;
             if ($char == '<') {
                 // get array content
@@ -207,13 +209,14 @@ abstract class RawObject
             // hexadecimal string object
             $objtype = $char;
             ++$offset;
-            if (($char == '<')
+            if (
+                ($char == '<')
                 && (preg_match(
                     '/^([0-9A-Fa-f\x09\x0a\x0c\x0d\x20]+)>/iU',
                     substr($this->pdfdata, $offset),
                     $matches
                 ) == 1)
-                ) {
+            ) {
                 // remove white space characters
                 $objval = strtr($matches[1], "\x09\x0a\x0c\x0d\x20", '');
                 $offset += strlen($matches[0]);
@@ -264,12 +267,14 @@ abstract class RawObject
             $offset += 6;
             if (preg_match('/^([\r]?[\n])/isU', substr($this->pdfdata, $offset), $matches) == 1) {
                 $offset += strlen($matches[0]);
-                if (preg_match(
-                    '/(endstream)[\x09\x0a\x0c\x0d\x20]/isU',
-                    substr($this->pdfdata, $offset),
-                    $matches,
-                    PREG_OFFSET_CAPTURE
-                ) == 1) {
+                if (
+                    preg_match(
+                        '/(endstream)[\x09\x0a\x0c\x0d\x20]/isU',
+                        substr($this->pdfdata, $offset),
+                        $matches,
+                        PREG_OFFSET_CAPTURE
+                    ) == 1
+                ) {
                     $objval = substr($this->pdfdata, $offset, $matches[0][1]);
                     $offset += $matches[1][1];
                 }
@@ -293,23 +298,27 @@ abstract class RawObject
      */
     protected function processDefault(&$offset, &$objtype, &$objval)
     {
-        if (preg_match(
-            '/^([0-9]+)[\s]+([0-9]+)[\s]+R/iU',
-            substr($this->pdfdata, $offset, 33),
-            $matches
-        ) == 1) {
+        if (
+            preg_match(
+                '/^([0-9]+)[\s]+([0-9]+)[\s]+R/iU',
+                substr($this->pdfdata, $offset, 33),
+                $matches
+            ) == 1
+        ) {
             // indirect object reference
             $objtype = 'objref';
             $offset += strlen($matches[0]);
-            $objval = intval($matches[1]).'_'.intval($matches[2]);
-        } elseif (preg_match(
-            '/^([0-9]+)[\s]+([0-9]+)[\s]+obj/iU',
-            substr($this->pdfdata, $offset, 33),
-            $matches
-        ) == 1) {
+            $objval = intval($matches[1]) . '_' . intval($matches[2]);
+        } elseif (
+            preg_match(
+                '/^([0-9]+)[\s]+([0-9]+)[\s]+obj/iU',
+                substr($this->pdfdata, $offset, 33),
+                $matches
+            ) == 1
+        ) {
             // object start
             $objtype = 'obj';
-            $objval = intval($matches[1]).'_'.intval($matches[2]);
+            $objval = intval($matches[1]) . '_' . intval($matches[2]);
             $offset += strlen($matches[0]);
         } elseif (($numlen = strspn($this->pdfdata, '+-.0123456789', $offset)) > 0) {
             // numeric object

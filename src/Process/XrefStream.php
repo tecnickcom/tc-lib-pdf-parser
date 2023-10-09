@@ -1,4 +1,5 @@
 <?php
+
 /**
  * XrefStream.php
  *
@@ -15,7 +16,7 @@
 
 namespace Com\Tecnick\Pdf\Parser\Process;
 
-use \Com\Tecnick\Pdf\Parser\Exception as PPException;
+use Com\Tecnick\Pdf\Parser\Exception as PPException;
 
 /**
  * Com\Tecnick\Pdf\Parser\Process\XrefStream
@@ -49,7 +50,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                 case 1:
                     // (n) objects that are in use but are not compressed
                     // create unique object index: [object number]_[generation number]
-                    $index = $obj_num.'_'.$row[2];
+                    $index = $obj_num . '_' . $row[2];
                     // check if object already exist
                     if (!isset($xref['xref'][$index])) {
                         // store object offset position
@@ -60,7 +61,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                     // compressed objects
                     // $row[1] = object number of the object stream in which this object is stored
                     // $row[2] = index of this object within the object stream
-                    $index = $row[1].'_0_'.$row[2];
+                    $index = $row[1] . '_0_' . $row[2];
                     $xref['xref'][$index] = -1;
                     break;
                 default:
