@@ -34,6 +34,20 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
 abstract class RawObject
 {
     /**
+     * Raw content of the PDF document.
+     *
+     * @var string
+     */
+    protected $pdfdata = '';
+
+    /**
+     * Array of PDF objects.
+     *
+     * @var array
+     */
+    protected $objects = array();
+
+    /**
      * Get object type, raw value and offset to next object
      *
      * @param int $offset Object offset.

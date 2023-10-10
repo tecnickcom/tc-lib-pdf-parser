@@ -47,6 +47,9 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
      */
     protected $mrkoff = array();
 
+
+    abstract protected function getIndirectObject($obj_ref, $offset = 0, $decoding = true);
+
     /**
      * Get Cross-Reference (xref) table and trailer data from PDF document data.
      *

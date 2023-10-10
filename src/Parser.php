@@ -34,20 +34,6 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
 class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
 {
     /**
-     * Raw content of the PDF document.
-     *
-     * @var string
-     */
-    protected $pdfdata = '';
-
-    /**
-     * Array of PDF objects.
-     *
-     * @var array
-     */
-    protected $objects = array();
-
-    /**
      * Array of configuration parameters.
      *
      * @var array
@@ -228,8 +214,6 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      * @param int    $slength Stream length
      * @param array  $sdic    Stream's dictionary array.
      * @param int    $key     Index
-     *
-     * @return array Array of filters
      */
     protected function getDeclaredStreamLength(&$stream, &$slength, $sdic, $key)
     {
