@@ -78,7 +78,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * @param array $sdata
      * @param array $ddata
      * @param int   $columns
-     * @param int   $prev_row
+     * @param array $prev_row
      */
     protected function pngUnpredictor($sdata, &$ddata, $columns, $prev_row)
     {
@@ -124,7 +124,6 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                     default:
                         // PNG prediction (on encoding, PNG optimum)
                         throw new PPException('Unknown PNG predictor');
-                        break;
                 }
             }
             $prev_row = $ddata[$key];

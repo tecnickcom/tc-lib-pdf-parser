@@ -99,8 +99,8 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
     protected function getIndirectObject($obj_ref, $offset = 0, $decoding = true)
     {
         $obj = explode('_', $obj_ref);
-        if (($obj === false) || (count($obj) != 2)) {
-            throw new PPException('Invalid object reference: ' . $obj);
+        if (($obj == false) || (count($obj) != 2)) {
+            throw new PPException('Invalid object reference: ' . serialize($obj));
         }
         $objref = $obj[0] . ' ' . $obj[1] . ' obj';
         // ignore leading zeros
@@ -121,7 +121,6 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
     /**
      * Get content of indirect object.
      *
-     * @param string $obj_ref  Object number and generation number separated by underscore character.
      * @param int    $offset   Object offset.
      * @param bool   $decoding If true decode streams.
      *
@@ -158,7 +157,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
     /**
      * Get the content of object, resolving indect object reference if necessary.
      *
-     * @param string $obj Object value.
+     * @param array $obj Object value.
      *
      * @return array Object data.
      */
