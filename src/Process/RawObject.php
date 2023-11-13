@@ -3,61 +3,137 @@
 /**
  * RawObject.php
  *
- * @since       2011-05-23
- * @category    Library
- * @package     PdfParser
- * @author      Nicola Asuni <info@tecnick.com>
- * @copyright   2011-2023 Nicola Asuni - Tecnick.com LTD
- * @license     http://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
- * @link        https://github.com/tecnickcom/tc-lib-pdf-parser
+ * @since     2011-05-23
+ * @category  Library
+ * @package   PdfParser
+ * @author    Nicola Asuni <info@tecnick.com>
+ * @copyright 2011-2023 Nicola Asuni - Tecnick.com LTD
+ * @license   http://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
+ * @link      https://github.com/tecnickcom/tc-lib-pdf-parser
  *
  * This file is part of tc-lib-pdf-parser software library.
  */
 
 namespace Com\Tecnick\Pdf\Parser\Process;
 
-use Com\Tecnick\Pdf\Parser\Exception as PPException;
-
 /**
  * Com\Tecnick\Pdf\Parser\Process\RawObject
  *
  * Process Raw Objects
  *
- * @since       2011-05-23
- * @category    Library
- * @package     PdfParser
- * @author      Nicola Asuni <info@tecnick.com>
- * @copyright   2011-2023 Nicola Asuni - Tecnick.com LTD
- * @license     http://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
- * @link        https://github.com/tecnickcom/tc-lib-pdf-parser
+ * @since     2011-05-23
+ * @category  Library
+ * @package   PdfParser
+ * @author    Nicola Asuni <info@tecnick.com>
+ * @copyright 2011-2023 Nicola Asuni - Tecnick.com LTD
+ * @license   http://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
+ * @link      https://github.com/tecnickcom/tc-lib-pdf-parser
  */
 abstract class RawObject
 {
     /**
      * Raw content of the PDF document.
-     *
-     * @var string
      */
-    protected $pdfdata = '';
+    protected string $pdfdata = '';
 
     /**
      * Array of PDF objects.
      *
-     * @var array
+     * @var array<string, array<int, array{
+     *                 0: string,
+     *                 1: string|array<int, array{
+     *                     0: string,
+     *                     1: string|array<int, array{
+     *                         0: string,
+     *                         1: string|array<int, array{
+     *                             0: string,
+     *                             1: string|array<int, array{
+     *                                 0: string,
+     *                                 1: string|array<int, array{
+     *                                     0: string,
+     *                                     1: string,
+     *                                     2: int,
+     *                                     3?: array{string, array<string>},
+     *                                 }>,
+     *                                 2: int,
+     *                                 3?: array{string, array<string>},
+     *                             }>,
+     *                             2: int,
+     *                             3?: array{string, array<string>},
+     *                         }>,
+     *                         2: int,
+     *                         3?: array{string, array<string>},
+     *                     }>,
+     *                     2: int,
+     *                     3?: array{string, array<string>},
+     *                   }>,
+     *                 2: int,
+     *                 3?: array{string, array<string>},
+     *             }>>
      */
-    protected $objects = array();
+    protected array $objects = [];
+
+    /**
+     * Map symbols with corresponding processing methods.
+     *
+     * @var array<string, string>
+     */
+    protected const SYMBOLMETHOD = [
+        // \x2F SOLIDUS
+        '/' => 'Solidus',
+        // \x28 LEFT PARENTHESIS
+        '(' => 'Parenthesis',
+        // \x29 RIGHT PARENTHESIS
+        ')' => 'Parenthesis',
+        // \x5B LEFT SQUARE BRACKET
+        '[' => 'Bracket',
+        // \x5D RIGHT SQUARE BRACKET
+        ']' => 'Bracket',
+        // \x3C LESS-THAN SIGN
+        '<' => 'Angular',
+        // \x3E GREATER-THAN SIGN
+        '>' => 'Angular',
+    ];
 
     /**
      * Get object type, raw value and offset to next object
      *
      * @param int $offset Object offset.
      *
-     * @return array Array containing object type, raw value and offset to next object
+     * @return array{
+     *                 0: string,
+     *                 1: string|array<int, array{
+     *                     0: string,
+     *                     1: string|array<int, array{
+     *                         0: string,
+     *                         1: string|array<int, array{
+     *                             0: string,
+     *                             1: string|array<int, array{
+     *                                 0: string,
+     *                                 1: string|array<int, array{
+     *                                     0: string,
+     *                                     1: string,
+     *                                     2: int,
+     *                                     3?: array{string, array<string>},
+     *                                 }>,
+     *                                 2: int,
+     *                                 3?: array{string, array<string>},
+     *                             }>,
+     *                             2: int,
+     *                             3?: array{string, array<string>},
+     *                         }>,
+     *                         2: int,
+     *                         3?: array{string, array<string>},
+     *                     }>,
+     *                     2: int,
+     *                     3?: array{string, array<string>},
+     *                   }>,
+     *                 2: int,
+     *                 3?: array{string, array<string>},
+     *             } Array containing: object type, raw value and offset to next object
      */
-    protected function getRawObject($offset = 0)
+    protected function getRawObject(int $offset = 0): array
     {
-        $objtype = ''; // object type to be returned
-        $objval = ''; // object value to be returned
         // skip initial white space chars:
         // \x00 null (NUL)
         // \x09 horizontal tab (HT)
@@ -76,37 +152,38 @@ abstract class RawObject
                 return $this->getRawObject($offset);
             }
         }
+
+        $objtype = '';
+        $objval = '';
         // map symbols with corresponding processing methods
-        $map = array(
-            '/' => 'Solidus',     // \x2F SOLIDUS
-            '(' => 'Parenthesis', // \x28 LEFT PARENTHESIS
-            ')' => 'Parenthesis', // \x29 RIGHT PARENTHESIS
-            '[' => 'Bracket',     // \x5B LEFT SQUARE BRACKET
-            ']' => 'Bracket',     // \x5D RIGHT SQUARE BRACKET
-            '<' => 'Angular',     // \x3C LESS-THAN SIGN
-            '>' => 'Angular',     // \x3E GREATER-THAN SIGN
-        );
-        if (isset($map[$char])) {
-            $method = 'process' . $map[$char];
+        if (isset(self::SYMBOLMETHOD[$char])) {
+            $method = 'process' . self::SYMBOLMETHOD[$char];
             $this->$method($char, $offset, $objtype, $objval);
-        } else {
-            if ($this->processDefaultName($offset, $objtype, $objval) === false) {
-                $this->processDefault($offset, $objtype, $objval);
-            }
+        } elseif ($this->processDefaultName($offset, $objtype, $objval) === false) {
+            $this->processDefault($offset, $objtype, $objval);
         }
-        return array($objtype, $objval, $offset);
+
+        return [$objtype, $objval, $offset];
     }
 
     /**
      * Process name object
      * \x2F SOLIDUS
      *
-     * @param string $char    Symbol to process
-     * @param int    $offset  Offset
-     * @param string $objtype Object type
-     * @param string $objval  Object content
+     * @param string                   $char    Symbol to process
+     * @param int                      $offset  Offset
+     * @param string                   $objtype Object type
+     * @param string|array<int, array{
+     *        0: string,
+     *        1: string|array<int, array{
+     *            0: string,
+     *            1: string,
+     *            2: int,
+     *        }>,
+     *        2: int,
+     *    }> $objval  Object content
      */
-    protected function processSolidus($char, &$offset, &$objtype, &$objval)
+    protected function processSolidus(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
         $objtype = $char;
         ++$offset;
@@ -126,12 +203,20 @@ abstract class RawObject
      * Process literal string object
      * \x28 LEFT PARENTHESIS and \x29 RIGHT PARENTHESIS
      *
-     * @param string $char    Symbol to process
-     * @param int    $offset  Offset
-     * @param string $objtype Object type
-     * @param string $objval  Object content
+     * @param string                   $char    Symbol to process
+     * @param int                      $offset  Offset
+     * @param string                   $objtype Object type
+     * @param string|array<int, array{
+     *        0: string,
+     *        1: string|array<int, array{
+     *            0: string,
+     *            1: string,
+     *            2: int,
+     *        }>,
+     *        2: int,
+     *    }> $objval  Object content
      */
-    protected function processParenthesis($char, &$offset, &$objtype, &$objval)
+    protected function processParenthesis(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
         $objtype = $char;
         ++$offset;
@@ -139,9 +224,10 @@ abstract class RawObject
         if ($char == '(') {
             $open_bracket = 1;
             while ($open_bracket > 0) {
-                if (!isset($this->pdfdata[$strpos])) {
+                if (! isset($this->pdfdata[$strpos])) {
                     break;
                 }
+
                 $chr = $this->pdfdata[$strpos];
                 switch ($chr) {
                     case '\\':
@@ -158,8 +244,10 @@ abstract class RawObject
                         --$open_bracket;
                         break;
                 }
+
                 ++$strpos;
             }
+
             $objval = substr($this->pdfdata, $offset, ($strpos - $offset - 1));
             $offset = $strpos;
         }
@@ -169,25 +257,33 @@ abstract class RawObject
      * Process array content
      * \x5B LEFT SQUARE BRACKET and \x5D RIGHT SQUARE BRACKET
      *
-     * @param string $char    Symbol to process
-     * @param int    $offset  Offset
-     * @param string $objtype Object type
-     * @param string $objval  Object content
+     * @param string            $char    Symbol to process
+     * @param int               $offset  Offset
+     * @param string            $objtype Object type
+     * @param array<int, array{
+     *        0: string,
+     *        1: string|array<int, array{
+     *            0: string,
+     *            1: string,
+     *            2: int,
+     *        }>,
+     *        2: int,
+     *    }> $objval  Object content
      */
-    protected function processBracket($char, &$offset, &$objtype, &$objval)
+    protected function processBracket(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
         // array object
         $objtype = $char;
         ++$offset;
         if ($char == '[') {
             // get array content
-            $objval = array();
+            $objval = [];
             do {
-                // get element
                 $element = $this->getRawObject($offset);
                 $offset = $element[2];
                 $objval[] = $element;
             } while ($element[0] != ']');
+
             // remove closing delimiter
             array_pop($objval);
         }
@@ -196,26 +292,34 @@ abstract class RawObject
     /**
      * Process \x3C LESS-THAN SIGN and \x3E GREATER-THAN SIGN
      *
-     * @param string $char    Symbol to process
-     * @param int    $offset  Offset
-     * @param string $objtype Object type
-     * @param string $objval  Object content
+     * @param string                   $char    Symbol to process
+     * @param int                      $offset  Offset
+     * @param string                   $objtype Object type
+     * @param string|array<int, array{
+     *        0: string,
+     *        1: string|array<int, array{
+     *            0: string,
+     *            1: string,
+     *            2: int,
+     *        }>,
+     *        2: int,
+     *    }> $objval  Object content
      */
-    protected function processAngular($char, &$offset, &$objtype, &$objval)
+    protected function processAngular(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
-        if (isset($this->pdfdata[($offset + 1)]) && ($this->pdfdata[($offset + 1)] == $char)) {
+        if (isset($this->pdfdata[($offset + 1)]) && ($this->pdfdata[($offset + 1)] === $char)) {
             // dictionary object
             $objtype = $char . $char;
             $offset += 2;
             if ($char == '<') {
                 // get array content
-                $objval = array();
+                $objval = [];
                 do {
-                    // get element
                     $element = $this->getRawObject($offset);
                     $offset = $element[2];
                     $objval[] = $element;
                 } while ($element[0] != '>>');
+
                 // remove closing delimiter
                 array_pop($objval);
             }
@@ -243,13 +347,21 @@ abstract class RawObject
     /**
      * Process default
      *
-     * @param int    $offset  Offset
-     * @param string $objtype Object type
-     * @param string $objval  Object content
+     * @param int                      $offset  Offset
+     * @param string                   $objtype Object type
+     * @param string|array<int, array{
+     *        0: string,
+     *        1: string|array<int, array{
+     *            0: string,
+     *            1: string,
+     *            2: int,
+     *        }>,
+     *        2: int,
+     *    }> $objval  Object content
      *
      * @return bool True in case of match, flase otherwise
      */
-    protected function processDefaultName(&$offset, &$objtype, &$objval)
+    protected function processDefaultName(int &$offset, string &$objtype, string|array &$objval): bool
     {
         $status = false;
         if (substr($this->pdfdata, $offset, 6) == 'endobj') {
@@ -293,6 +405,7 @@ abstract class RawObject
                     $offset += $matches[1][1];
                 }
             }
+
             $status = true;
         } elseif (substr($this->pdfdata, $offset, 9) == 'endstream') {
             // end stream object
@@ -300,17 +413,26 @@ abstract class RawObject
             $offset += 9;
             $status = true;
         }
+
         return $status;
     }
 
     /**
      * Process default
      *
-     * @param int    $offset  Offset
-     * @param string $objtype Object type
-     * @param string $objval  Object content
+     * @param int                      $offset  Offset
+     * @param string                   $objtype Object type
+     * @param string|array<int, array{
+     *        0: string,
+     *        1: string|array<int, array{
+     *            0: string,
+     *            1: string,
+     *            2: int,
+     *        }>,
+     *        2: int,
+     *    }> $objval  Object content
      */
-    protected function processDefault(&$offset, &$objtype, &$objval)
+    protected function processDefault(int &$offset, string &$objtype, string|array &$objval): void
     {
         if (
             preg_match(
@@ -322,7 +444,7 @@ abstract class RawObject
             // indirect object reference
             $objtype = 'objref';
             $offset += strlen($matches[0]);
-            $objval = intval($matches[1]) . '_' . intval($matches[2]);
+            $objval = (int) $matches[1] . '_' . (int) $matches[2];
         } elseif (
             preg_match(
                 '/^([0-9]+)[\s]+([0-9]+)[\s]+obj/iU',
@@ -332,7 +454,7 @@ abstract class RawObject
         ) {
             // object start
             $objtype = 'obj';
-            $objval = intval($matches[1]) . '_' . intval($matches[2]);
+            $objval = (int) $matches[1] . '_' . (int) $matches[2];
             $offset += strlen($matches[0]);
         } elseif (($numlen = strspn($this->pdfdata, '+-.0123456789', $offset)) > 0) {
             // numeric object
