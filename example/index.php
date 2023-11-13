@@ -14,7 +14,7 @@
  */
 
 // autoloader when using Composer
-require ('../vendor/autoload.php');
+require(__DIR__ . '/../vendor/autoload.php');
 
 // autoloader when using RPM or DEB package installation
 //require ('/usr/share/php/Com/Tecnick/Pdf/Parser/autoload.php');
@@ -22,10 +22,13 @@ require ('../vendor/autoload.php');
 $filename = '../resources/test/example_036.pdf';
 $rawdata = file_get_contents($filename);
 if ($rawdata === false) {
-    die('Unable to get the content of the file: '.$filename);
+    die('Unable to get the content of the file: ' . $filename);
 }
+
 // configuration parameters for parser
-$cfg = array('ignore_filter_errors' => true);
+$cfg = [
+    'ignore_filter_errors' => true,
+];
 
 // parse PDF data
 $pdf = new \Com\Tecnick\Pdf\Parser\Parser($cfg);

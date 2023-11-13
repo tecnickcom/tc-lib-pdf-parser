@@ -62,7 +62,7 @@ All artifacts are generated in the target directory.
 
 Examples are located in the `example` directory.
 
-Start a development server (requires PHP 5.4) using the command:
+Start a development server (requires PHP 8.0+) using the command:
 
 ```
 make server
@@ -78,7 +78,7 @@ Create a composer.json in your projects root-directory:
 ```json
 {
     "require": {
-        "tecnickcom/tc-lib-pdf-parser": "^2.3"
+        "tecnickcom/tc-lib-pdf-parser": "^3.0.0"
     }
 }
 ```
@@ -86,7 +86,7 @@ Create a composer.json in your projects root-directory:
 Or add to an existing project with: 
 
 ```bash
-composer require tecnickcom/tc-lib-pdf-parser ^2.3
+composer require tecnickcom/tc-lib-pdf-parser ^3.0.0
 ```
 
 

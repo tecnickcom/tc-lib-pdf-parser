@@ -16,9 +16,9 @@ URL:       https://github.com/%{gh_owner}/%{gh_project}
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-%(%{__id_u} -n)
 BuildArch: noarch
 
-Requires:  php(language) >= 5.4.0
+Requires:  php(language) >= 8.0.0
 Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) < 2.0.0
-Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) >= 1.4.37
+Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) >= 2.0.6
 Requires:  php-pcre
 
 Provides:  php-composer(%{c_vendor}/%{gh_project}) = %{version}
