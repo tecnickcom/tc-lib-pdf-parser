@@ -28,6 +28,38 @@ namespace Com\Tecnick\Pdf\Parser\Process;
  * @copyright 2011-2023 Nicola Asuni - Tecnick.com LTD
  * @license   http://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
  * @link      https://github.com/tecnickcom/tc-lib-pdf-parser
+ *
+ * @phpstan-type RawObjectArray array{
+ *                 0: string,
+ *                 1: string|array<int, array{
+ *                     0: string,
+ *                     1: string|array<int, array{
+ *                         0: string,
+ *                         1: string|array<int, array{
+ *                             0: string,
+ *                             1: string|array<int, array{
+ *                                 0: string,
+ *                                 1: string|array<int, array{
+ *                                     0: string,
+ *                                     1: string,
+ *                                     2: int,
+ *                                     3?: array{string, array<string>},
+ *                                 }>,
+ *                                 2: int,
+ *                                 3?: array{string, array<string>},
+ *                             }>,
+ *                             2: int,
+ *                             3?: array{string, array<string>},
+ *                         }>,
+ *                         2: int,
+ *                         3?: array{string, array<string>},
+ *                     }>,
+ *                     2: int,
+ *                     3?: array{string, array<string>},
+ *                   }>,
+ *                 2: int,
+ *                 3?: array{string, array<string>},
+ *             }
  */
 abstract class RawObject
 {
@@ -39,37 +71,7 @@ abstract class RawObject
     /**
      * Array of PDF objects.
      *
-     * @var array<string, array<int, array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             }>>
+     * @var array<string, array<int, RawObjectArray>>
      */
     protected array $objects = [];
 
@@ -100,37 +102,7 @@ abstract class RawObject
      *
      * @param int $offset Object offset.
      *
-     * @return array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             } Array containing: object type, raw value and offset to next object
+     * @return RawObjectArray Array containing: object type, raw value and offset to next object
      */
     protected function getRawObject(int $offset = 0): array
     {

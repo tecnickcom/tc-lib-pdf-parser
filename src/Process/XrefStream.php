@@ -30,6 +30,8 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
  * @copyright 2011-2023 Nicola Asuni - Tecnick.com LTD
  * @license   http://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
  * @link      https://github.com/tecnickcom/tc-lib-pdf-parser
+ *
+ * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
  */
 abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
 {
@@ -188,37 +190,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     /**
      * Process XREF types
      *
-     * @param array<int, array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             }> $sarr        Stream data
+     * @param array<int, RawObjectArray> $sarr        Stream data
      * @param array{
      *        'trailer': array{
      *            'encrypt'?: string,
@@ -288,37 +260,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     /**
      * Process XREF type Prev
      *
-     * @param array<int, array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             }> $sarr     Stream data
+     * @param array<int, RawObjectArray> $sarr     Stream data
      * @param int               $key      Key
      * @param int               $prevxref Previous XREF
      */
@@ -333,37 +275,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     /**
      * Process XREF type DecodeParms
      *
-     * @param array<int, array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             }> $sarr Stream data
+     * @param array<int, RawObjectArray> $sarr Stream data
      * @param int               $key     Key
      * @param int               $columns Number of columns
      */
@@ -388,37 +300,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * Process XREF type
      *
      * @param string            $type        Type
-     * @param array<int, array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             }> $sarr  Stream data
+     * @param array<int, RawObjectArray> $sarr  Stream data
      * @param int               $key         Key
      * @param array{
      *        'trailer': array{
@@ -460,37 +342,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * Process XREF type Objref
      *
      * @param string            $type Type
-     * @param array<int, array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             }> $sarr Stream data
+     * @param array<int, RawObjectArray> $sarr Stream data
      * @param int               $key  Key
      * @param array{
      *        'trailer': array{

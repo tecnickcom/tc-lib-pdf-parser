@@ -33,6 +33,8 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
  * @link      https://github.com/tecnickcom/tc-lib-pdf-parser
  *
  * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ *
+ * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
  */
 class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
 {
@@ -79,37 +81,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      *                    },
      *                    'xref': array<string, int>,
      *                },
-     *             1: array<string, array<int, array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             }>>,
+     *             1: array<string, array<int, RawObjectArray>>,
      *         }
      */
     public function parse(string $data): array
@@ -154,37 +126,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      * @param int    $offset   Object offset.
      * @param bool   $decoding If true decode streams.
      *
-     * @return array<int, array{
-     *          0: string,
-     *          1: string|array<int, array{
-     *              0: string,
-     *              1: string|array<int, array{
-     *                  0: string,
-     *                  1: string|array<int, array{
-     *                      0: string,
-     *                      1: string|array<int, array{
-     *                          0: string,
-     *                          1: string|array<int, array{
-     *                              0: string,
-     *                              1: string,
-     *                              2: int,
-     *                              3?: array{string, array<string>},
-     *                          }>,
-     *                          2: int,
-     *                          3?: array{string, array<string>},
-     *                      }>,
-     *                      2: int,
-     *                      3?: array{string, array<string>},
-     *                  }>,
-     *                  2: int,
-     *                  3?: array{string, array<string>},
-     *              }>,
-     *              2: int,
-     *              3?: array{string, array<string>},
-     *            }>,
-     *          2: int,
-     *          3?: array{string, array<string>},
-     *      }> Object data.
+     * @return array<int, RawObjectArray> Object data.
      */
     protected function getIndirectObject(string $obj_ref, int $offset = 0, bool $decoding = true): array
     {
@@ -216,37 +158,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      * @param int  $offset   Object offset.
      * @param bool $decoding If true decode streams.
      *
-     * @return array<int, array{
-     *          0: string,
-     *          1: string|array<int, array{
-     *              0: string,
-     *              1: string|array<int, array{
-     *                  0: string,
-     *                  1: string|array<int, array{
-     *                      0: string,
-     *                      1: string|array<int, array{
-     *                          0: string,
-     *                          1: string|array<int, array{
-     *                              0: string,
-     *                              1: string,
-     *                              2: int,
-     *                              3?: array{string, array<string>},
-     *                          }>,
-     *                          2: int,
-     *                          3?: array{string, array<string>},
-     *                      }>,
-     *                      2: int,
-     *                      3?: array{string, array<string>},
-     *                  }>,
-     *                  2: int,
-     *                  3?: array{string, array<string>},
-     *              }>,
-     *              2: int,
-     *              3?: array{string, array<string>},
-     *            }>,
-     *          2: int,
-     *          3?: array{string, array<string>},
-     *      }> Object data.
+     * @return array<int, RawObjectArray> Object data.
      */
     protected function getRawIndirectObject(int $offset, bool $decoding): array
     {
@@ -284,69 +196,9 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
     /**
      * Get the content of object, resolving indect object reference if necessary.
      *
-     * @param array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             } $obj Object value.
+     * @param RawObjectArray $obj Object value.
      *
-     * @return array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             } Object data.
+     * @return RawObjectArray Object data.
      */
     protected function getObjectVal(array $obj): array
     {
@@ -370,37 +222,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
     /**
      * Decode the specified stream.
      *
-     * @param array<int, array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             }>  $sdic   Stream's dictionary array.
+     * @param array<int, RawObjectArray>  $sdic   Stream's dictionary array.
      * @param string            $stream Stream to decode.
      *
      * @return array{
@@ -442,37 +264,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      *
      * @param string            $stream  Stream
      * @param int               $slength Stream length
-     * @param array<int, array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             }>   $sdic Stream's dictionary array.
+     * @param array<int, RawObjectArray>   $sdic Stream's dictionary array.
      * @param int               $key     Index
      */
     protected function getDeclaredStreamLength(string &$stream, int &$slength, array $sdic, int $key): void
@@ -489,37 +281,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      * Get Filters
      *
      * @param array<string>     $filters Array of Filters
-     * @param array<int, array{
-     *                 0: string,
-     *                 1: string|array<int, array{
-     *                     0: string,
-     *                     1: string|array<int, array{
-     *                         0: string,
-     *                         1: string|array<int, array{
-     *                             0: string,
-     *                             1: string|array<int, array{
-     *                                 0: string,
-     *                                 1: string|array<int, array{
-     *                                     0: string,
-     *                                     1: string,
-     *                                     2: int,
-     *                                     3?: array{string, array<string>},
-     *                                 }>,
-     *                                 2: int,
-     *                                 3?: array{string, array<string>},
-     *                             }>,
-     *                             2: int,
-     *                             3?: array{string, array<string>},
-     *                         }>,
-     *                         2: int,
-     *                         3?: array{string, array<string>},
-     *                     }>,
-     *                     2: int,
-     *                     3?: array{string, array<string>},
-     *                   }>,
-     *                 2: int,
-     *                 3?: array{string, array<string>},
-     *             }> $sdic    Stream's dictionary array.
+     * @param array<int, RawObjectArray> $sdic    Stream's dictionary array.
      * @param int               $key     Index
      *
      * @return array<string> Array of filters
