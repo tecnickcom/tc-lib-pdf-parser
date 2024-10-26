@@ -251,7 +251,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
         }
 
         // get trailer data
-        $trl = preg_match('/trailer[\s]*<<(.*)>>/isU', $this->pdfdata, $trmatches, PREG_OFFSET_CAPTURE, $offset);
+        $trl = preg_match('/trailer[\s]*+<<(.*)>>/isU', $this->pdfdata, $trmatches, PREG_OFFSET_CAPTURE, $offset);
         if ($trl !== 1) {
             throw new PPException('Unable to find trailer');
         }
@@ -314,7 +314,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
                 $xref['trailer']['info'] = (int) $matches[1] . '_' . (int) $matches[2];
             }
 
-            if (preg_match('/ID[\s]*[\[][\s]*[<]([^>]*)[>][\s]*[<]([^>]*)[>]/i', $trailer_data, $matches) > 0) {
+            if (preg_match('/ID[\s]*+[\[][\s]*+[<]([^>]*+)[>][\s]*+[<]([^>]*+)[>]/i', $trailer_data, $matches) > 0) {
                 $xref['trailer']['id'] = [];
                 $xref['trailer']['id'][0] = $matches[1];
                 $xref['trailer']['id'][1] = $matches[2];
