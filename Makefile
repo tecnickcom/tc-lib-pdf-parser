@@ -105,6 +105,7 @@ help:
 	@echo "  make rpm      : Build an RPM package for RedHat-like Linux distributions"
 	@echo "  make server   : Start the development server"
 	@echo "  make test     : Run unit tests"
+	@echo "  make versionup: Increase the version patch number"
 	@echo ""
 	@echo "To test and build everything from scratch:"
 	@echo "make buildall"
@@ -268,3 +269,9 @@ test:
 uninstall:
 	rm -rf $(PATHINSTBIN)
 	rm -rf $(PATHINSTDOC)
+
+# Increase the version patch number
+.PHONY: versionup
+versionup:
+	echo ${VERSION} | gawk -F. '{printf("%d.%d.%d\n",$$1,$$2,(($$3+1)));}' > VERSION
+
