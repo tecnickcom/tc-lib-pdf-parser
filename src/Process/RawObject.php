@@ -232,7 +232,7 @@ abstract class RawObject
      * @param string            $char    Symbol to process
      * @param int               $offset  Offset
      * @param string            $objtype Object type
-     * @param array<int, array{
+     * @param string|array<int, array{
      *        0: string,
      *        1: string|array<int, array{
      *            0: string,
@@ -253,7 +253,7 @@ abstract class RawObject
             do {
                 $element = $this->getRawObject($offset);
                 $offset = $element[2];
-                $objval[] = $element;
+                $objval[] = $element; // @phpstan-ignore parameterByRef.type
             } while ($element[0] != ']');
 
             // remove closing delimiter
@@ -289,7 +289,7 @@ abstract class RawObject
                 do {
                     $element = $this->getRawObject($offset);
                     $offset = $element[2];
-                    $objval[] = $element;
+                    $objval[] = $element; // @phpstan-ignore parameterByRef.type
                 } while ($element[0] != '>>');
 
                 // remove closing delimiter

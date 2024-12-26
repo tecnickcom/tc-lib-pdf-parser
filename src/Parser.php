@@ -32,7 +32,7 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
  * @license   http://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
  * @link      https://github.com/tecnickcom/tc-lib-pdf-parser
  *
- * @SuppressWarnings(PHPMD.ExcessiveClassComplexity)
+ * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  *
  * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
  */
@@ -230,7 +230,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      *             1: array<string>,
      *         } Decoded stream data and remaining filters.
      *
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings("PHPMD.CyclomaticComplexity")
      */
     protected function decodeStream(array $sdic, string $stream): array
     {

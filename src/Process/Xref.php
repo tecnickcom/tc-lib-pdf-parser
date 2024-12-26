@@ -34,6 +34,31 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
 abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
 {
     /**
+     * Default empty XREF data.
+     *
+     * @var array{
+     *        'trailer': array{
+     *            'encrypt'?: string,
+     *            'id': array<int, string>,
+     *            'info': string,
+     *            'root': string,
+     *            'size': int,
+     *        },
+     *        'xref': array<string, int>,
+     *    }
+     */
+    protected const XREF_EMPTY = [
+        'trailer' => [
+            'encrypt' => '',
+            'id' => [],
+            'info' => '',
+            'root' => '',
+            'size' => 0,
+        ],
+        'xref' => [],
+    ];
+
+    /**
      * XREF data.
      *
      * @var array{
@@ -47,16 +72,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
      *        'xref': array<string, int>,
      *    }
      */
-    protected array $xref = [
-        'trailer' => [
-            'encrypt' => '',
-            'id' => [],
-            'info' => '',
-            'root' => '',
-            'size' => 0,
-        ],
-        'xref' => [],
-    ];
+    protected array $xref = self::XREF_EMPTY;
 
     /**
      * Store the processed offsets
@@ -107,7 +123,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
      *        'xref': array<string, int>,
      *    } Xref and trailer data.
      *
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings("PHPMD.CyclomaticComplexity")
      */
     protected function getXrefData(int $offset = 0, array $xref = []): array
     {
@@ -355,7 +371,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
      *        'xref': array<string, int>,
      *    } Xref and trailer data.
      *
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings("PHPMD.CyclomaticComplexity")
      */
     protected function decodeXrefStream(int $startxref, array $xref): array
     {
@@ -366,16 +382,13 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
         }
 
         $xrefcrs = $this->getIndirectObject($xrefobj[1], $startxref, true);
-        if (! isset($xref['trailer']) || empty($xref['trailer'])) {
-            // get only the last updated version
-            $xref['trailer'] = [];
-            $filltrailer = true;
-        } else {
-            $filltrailer = false;
-        }
 
+        $filltrailer = empty($xref['trailer']);
+        if ($filltrailer) {
+            $xref['trailer'] = self::XREF_EMPTY['trailer'];
+        }
         if (! isset($xref['xref'])) {
-            $xref['xref'] = [];
+            $xref['xref'] = self::XREF_EMPTY['xref'];
         }
 
         $valid_crs = false;
@@ -405,7 +418,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
             $ddata = [];
             // initialize first row with zeros
             $prev_row = array_fill(0, $rowlen, 0);
-            $this->pngUnpredictor($sdata, $ddata, $columns, $prev_row);
+            $this->pngUnpredictor($sdata, $ddata, $columns, $prev_row); //@phpstan-ignore argument.type
             // complete decoding
             $sdata = [];
             $this->processDdata($sdata, $ddata, $wbt);
@@ -417,12 +430,12 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
         }
 
         // end decoding data
-        if ($prevxref !== []) {
-            // get previous xref
-            return $this->getXrefData($prevxref, $xref);
+        if (is_null($prevxref)) {
+            return $xref;
         }
 
-        return $xref;
+        // get previous xref
+        return $this->getXrefData($prevxref, $xref);
     }
 
     /**

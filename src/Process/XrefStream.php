@@ -32,6 +32,8 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
  * @link      https://github.com/tecnickcom/tc-lib-pdf-parser
  *
  * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
+ *
+ * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  */
 abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
 {
@@ -48,8 +50,8 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      *        },
      *        'xref': array<string, int>,
      *    } $xref    XREF data
-     * @param int                            $obj_num Object number
-     * @param array<int, array<int, string>> $sdata   Stream data
+     * @param int $obj_num Object number
+     * @param array<int, array<int, int>> $sdata   Stream data
      */
     protected function processObjIndexes(array &$xref, int &$obj_num, array $sdata): void
     {
@@ -202,22 +204,22 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      *        'xref': array<string, int>,
      *    } $xref        XREF data
      * @param array<int, int>   $wbt         WBT data
-     * @param int               $index_first Index first
-     * @param int               $prevxref    Previous XREF
+     * @param int|null          $index_first Index first
+     * @param int|null          $prevxref    Previous XREF
      * @param int               $columns     Number of columns
-     * @param int               $valid_crs   Valid CRS
+     * @param bool              $valid_crs   Valid CRS
      * @param bool              $filltrailer Fill trailer
      *
-     * @SuppressWarnings(PHPMD.CyclomaticComplexity)
+     * @SuppressWarnings("PHPMD.CyclomaticComplexity")
      */
     protected function processXrefType(
         array $sarr,
         array &$xref,
         array &$wbt,
-        int &$index_first,
-        int &$prevxref,
+        ?int &$index_first,
+        ?int &$prevxref,
         int &$columns,
-        int &$valid_crs,
+        bool &$valid_crs,
         bool $filltrailer
     ): void {
         foreach ($sarr as $key => $val) {
@@ -262,9 +264,9 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      *
      * @param array<int, RawObjectArray> $sarr     Stream data
      * @param int               $key      Key
-     * @param int               $prevxref Previous XREF
+     * @param int|null               $prevxref Previous XREF
      */
-    protected function processXrefPrev(array $sarr, int $key, int &$prevxref): void
+    protected function processXrefPrev(array $sarr, int $key, ?int &$prevxref): void
     {
         if ($sarr[($key + 1)][0] == 'numeric') {
             // get previous xref offset
@@ -299,9 +301,9 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     /**
      * Process XREF type
      *
-     * @param string            $type        Type
+     * @param string $type Type
      * @param array<int, RawObjectArray> $sarr  Stream data
-     * @param int               $key         Key
+     * @param int $key Key
      * @param array{
      *        'trailer': array{
      *            'encrypt'?: string,
@@ -311,8 +313,8 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      *            'size': int,
      *        },
      *        'xref': array<string, int>,
-     *    } $xref        XREF data
-     * @param bool              $filltrailer Fill trailer
+     *    } $xref XREF data
+     * @param bool $filltrailer Fill trailer
      */
     protected function processXrefTypeFt(string $type, array $sarr, int $key, array &$xref, bool $filltrailer): void
     {
@@ -323,11 +325,19 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
         switch ($type) {
             case 'Size':
                 if ($sarr[($key + 1)][0] == 'numeric') {
-                    $xref['trailer']['size'] = $sarr[($key + 1)][1];
+                    $xref['trailer']['size'] = (int) $sarr[($key + 1)][1];
                 }
 
                 break;
             case 'ID':
+                if (
+                    empty($sarr[($key + 1)][1][0][1])
+                    || empty($sarr[($key + 1)][1][1][1])
+                    || !is_string($sarr[($key + 1)][1][0][1])
+                    || !is_string($sarr[($key + 1)][1][1][1])
+                ) {
+                    break;
+                }
                 $xref['trailer']['id'] = [];
                 $xref['trailer']['id'][0] = $sarr[($key + 1)][1][0][1];
                 $xref['trailer']['id'][1] = $sarr[($key + 1)][1][1][1];
@@ -357,19 +367,26 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      */
     protected function processXrefObjref(string $type, array $sarr, int $key, array &$xref): void
     {
-        if (! isset($sarr[($key + 1)]) || ($sarr[($key + 1)][0] !== 'objref')) {
+        if (
+            empty($sarr[($key + 1)])
+            || empty($sarr[($key + 1)][1])
+            || !is_string($sarr[($key + 1)][1])
+            || ($sarr[($key + 1)][0] !== 'objref')
+        ) {
             return;
         }
 
+        $val = $sarr[($key + 1)][1];
+
         switch ($type) {
             case 'Root':
-                $xref['trailer']['root'] = $sarr[($key + 1)][1];
+                $xref['trailer']['root'] = $val;
                 break;
             case 'Info':
-                $xref['trailer']['info'] = $sarr[($key + 1)][1];
+                $xref['trailer']['info'] = $val;
                 break;
             case 'Encrypt':
-                $xref['trailer']['encrypt'] = $sarr[($key + 1)][1];
+                $xref['trailer']['encrypt'] = $val;
                 break;
         }
     }
