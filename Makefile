@@ -83,6 +83,9 @@ COMPOSER=$(PHP) -d "apc.enable_cli=0" $(shell which composer)
 # phpDocumentor executable file
 PHPDOC=$(shell which phpDocumentor)
 
+# phpstan version
+PHPSTANVER=2.1.32
+
 # --- MAKE TARGETS ---
 
 # Display general help about this command
@@ -170,7 +173,7 @@ endif
 deps: ensuretarget
 	rm -rf ./vendor/*
 	($(COMPOSER) install -vvv --no-interaction)
-	curl --silent --show-error --fail --location --output ./vendor/phpstan.phar https://github.com/phpstan/phpstan/releases/download/2.1.2/phpstan.phar \
+	curl --silent --show-error --fail --location --output ./vendor/phpstan.phar https://github.com/phpstan/phpstan/releases/download/${PHPSTANVER}/phpstan.phar \
 	&& chmod +x ./vendor/phpstan.phar
 
 # Generate source code documentation

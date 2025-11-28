@@ -114,8 +114,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
             $this->objects[$obj] = $this->getIndirectObject($obj, $offset, true);
         }
 
-        // release some memory
-        unset($this->pdfdata);
+        $this->pdfdata = '';
         return [$this->xref, $this->objects];
     }
 

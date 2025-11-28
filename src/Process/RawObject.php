@@ -256,8 +256,10 @@ abstract class RawObject
                 $objval[] = $element; // @phpstan-ignore parameterByRef.type
             } while ($element[0] != ']');
 
-            // remove closing delimiter
-            array_pop($objval);
+            if (count($objval) > 0) {
+                // remove closing delimiter
+                array_pop($objval); // @phpstan-ignore parameterByRef.type
+            }
         }
     }
 
@@ -292,8 +294,10 @@ abstract class RawObject
                     $objval[] = $element; // @phpstan-ignore parameterByRef.type
                 } while ($element[0] != '>>');
 
-                // remove closing delimiter
-                array_pop($objval);
+                if (count($objval) > 0) {
+                    // remove closing delimiter
+                    array_pop($objval); // @phpstan-ignore parameterByRef.type
+                }
             }
         } else {
             // hexadecimal string object
