@@ -91,12 +91,12 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
         }
 
         // find the pdf header starting position
-        if (($trimpos = strpos($data, '%PDF-')) === false) {
+        if (($trimpos = \strpos($data, '%PDF-')) === false) {
             throw new PPException('Invalid PDF data: missing %PDF header.');
         }
 
         // get PDF content string
-        $this->pdfdata = substr($data, $trimpos);
+        $this->pdfdata = \substr($data, $trimpos);
         // get xref and trailer data
         $this->xref = $this->getXrefData();
         // parse all document objects
@@ -129,24 +129,24 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      */
     protected function getIndirectObject(string $obj_ref, int $offset = 0, bool $decoding = true): array
     {
-        $obj = explode('_', $obj_ref);
-        if (($obj == false) || (count($obj) != 2)) {
-            throw new PPException('Invalid object reference: ' . serialize($obj));
+        $obj = \explode('_', $obj_ref);
+        if (($obj == false) || (\count($obj) != 2)) {
+            throw new PPException('Invalid object reference: ' . \serialize($obj));
         }
 
         $objref = $obj[0] . ' ' . $obj[1] . ' obj';
         // ignore leading zeros
-        $offset += strspn($this->pdfdata, '0', $offset);
-        if (strpos($this->pdfdata, $objref, $offset) != $offset) {
+        $offset += \strspn($this->pdfdata, '0', $offset);
+        if (\strpos($this->pdfdata, $objref, $offset) != $offset) {
             ++$offset;
-            if (strpos($this->pdfdata, $objref, $offset) != $offset) {
+            if (\strpos($this->pdfdata, $objref, $offset) != $offset) {
                 // an indirect reference to an undefined object shall be considered a reference to the null object
                 return [['null', 'null', $offset]];
             }
         }
 
         // starting position of object content
-        $offset += strlen($objref);
+        $offset += \strlen($objref);
         // return raw object content
         return $this->getRawIndirectObject($offset, $decoding);
     }
@@ -175,8 +175,8 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
                 && ($element[0] == 'stream')
                 && (isset($objdata[($idx - 1)][0]))
                 && ($objdata[($idx - 1)][0] == '<<')
-                && (is_array($objdata[($idx - 1)][1]))
-                && (is_string($element[1]))
+                && (\is_array($objdata[($idx - 1)][1]))
+                && (\is_string($element[1]))
             ) {
                 $element[3] = $this->decodeStream($objdata[($idx - 1)][1], $element[1]);
             }
@@ -186,7 +186,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
         } while (($element[0] != 'endobj') && ($offset != $oldoffset));
 
         // remove closing delimiter
-        array_pop($objdata);
+        \array_pop($objdata);
 
         // return raw object content
         return $objdata;
@@ -201,7 +201,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      */
     protected function getObjectVal(array $obj): array
     {
-        if (($obj[0] == 'objref') && is_string($obj[1])) {
+        if (($obj[0] == 'objref') && \is_string($obj[1])) {
             // reference to indirect object
             if (isset($this->objects[$obj[1]][0])) {
                 // this object has been already parsed
@@ -234,14 +234,14 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
     protected function decodeStream(array $sdic, string $stream): array
     {
         // get stream length and filters
-        $slength = strlen($stream);
+        $slength = \strlen($stream);
         if ($slength <= 0) {
             return ['', []];
         }
 
         $filters = [];
         foreach ($sdic as $key => $val) {
-            if (! is_string($val[1])) {
+            if (! \is_string($val[1])) {
                 continue;
             }
 
@@ -271,7 +271,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
         // get declared stream length
         $declength = (int) $sdic[($key + 1)][1];
         if ($declength < $slength) {
-            $stream = substr($stream, 0, $declength);
+            $stream = \substr($stream, 0, $declength);
             $slength = $declength;
         }
     }
@@ -293,18 +293,18 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
         switch ($objval[0]) {
             case '/':
                 // single filter
-                if (is_string($objval[1])) {
+                if (\is_string($objval[1])) {
                     $filters[] = $objval[1];
                 }
 
                 break;
             case '[':
-                if (! is_array($objval[1])) {
+                if (! \is_array($objval[1])) {
                     break;
                 }
 
                 foreach ($objval[1] as $flt) {
-                    if (! is_array($flt)) {
+                    if (! \is_array($flt)) {
                         continue;
                     }
 
@@ -312,7 +312,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
                         continue;
                     }
 
-                    if (! is_string($flt[1])) {
+                    if (! \is_string($flt[1])) {
                         continue;
                     }
 

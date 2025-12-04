@@ -39,11 +39,11 @@ class ParserTest extends TestCase
         $cfg = [
             'ignore_filter_errors' => true,
         ];
-        $rawdata = file_get_contents($filename);
+        $rawdata = \file_get_contents($filename);
         $this->assertNotFalse($rawdata);
         $parser = new Parser($cfg);
         $data = $parser->parse($rawdata);
-        $this->assertEquals($hash, md5(serialize($data)));
+        $this->assertEquals($hash, \md5(\serialize($data)));
     }
 
     /**

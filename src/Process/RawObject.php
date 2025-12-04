@@ -113,12 +113,12 @@ abstract class RawObject
         // \x0C form feed (FF)
         // \x0D carriage return (CR)
         // \x20 space (SP)
-        $offset += strspn($this->pdfdata, "\x00\x09\x0a\x0c\x0d\x20", $offset);
+        $offset += \strspn($this->pdfdata, "\x00\x09\x0a\x0c\x0d\x20", $offset);
         // get first char
         $char = $this->pdfdata[$offset];
         if ($char == '%') { // \x25 PERCENT SIGN
             // skip comment and search for next token
-            $next = strcspn($this->pdfdata, "\r\n", $offset);
+            $next = \strcspn($this->pdfdata, "\r\n", $offset);
             if ($next > 0) {
                 $offset += $next;
                 return $this->getRawObject($offset);
@@ -160,14 +160,14 @@ abstract class RawObject
         $objtype = $char;
         ++$offset;
         if (
-            preg_match(
+            \preg_match(
                 '/^([^\x00\x09\x0a\x0c\x0d\x20\s\x28\x29\x3c\x3e\x5b\x5d\x7b\x7d\x2f\x25]+)/',
-                substr($this->pdfdata, $offset, 256),
+                \substr($this->pdfdata, $offset, 256),
                 $matches
             ) == 1
         ) {
             $objval = $matches[1]; // unescaped value
-            $offset += strlen($objval);
+            $offset += \strlen($objval);
         }
     }
 
@@ -220,7 +220,7 @@ abstract class RawObject
                 ++$strpos;
             }
 
-            $objval = substr($this->pdfdata, $offset, ($strpos - $offset - 1));
+            $objval = \substr($this->pdfdata, $offset, ($strpos - $offset - 1));
             $offset = $strpos;
         }
     }
@@ -256,9 +256,9 @@ abstract class RawObject
                 $objval[] = $element; // @phpstan-ignore parameterByRef.type
             } while ($element[0] != ']');
 
-            if (count($objval) > 0) {
+            if (\count($objval) > 0) {
                 // remove closing delimiter
-                array_pop($objval); // @phpstan-ignore parameterByRef.type
+                \array_pop($objval); // @phpstan-ignore parameterByRef.type
             }
         }
     }
@@ -294,9 +294,9 @@ abstract class RawObject
                     $objval[] = $element; // @phpstan-ignore parameterByRef.type
                 } while ($element[0] != '>>');
 
-                if (count($objval) > 0) {
+                if (\count($objval) > 0) {
                     // remove closing delimiter
-                    array_pop($objval); // @phpstan-ignore parameterByRef.type
+                    \array_pop($objval); // @phpstan-ignore parameterByRef.type
                 }
             }
         } else {
@@ -305,16 +305,16 @@ abstract class RawObject
             ++$offset;
             if (
                 ($char == '<')
-                && (preg_match(
+                && (\preg_match(
                     '/^([0-9A-Fa-f\x09\x0a\x0c\x0d\x20]+)>/iU',
-                    substr($this->pdfdata, $offset),
+                    \substr($this->pdfdata, $offset),
                     $matches
                 ) == 1)
             ) {
                 // remove white space characters
-                $objval = strtr($matches[1], "\x09\x0a\x0c\x0d\x20", '');
-                $offset += strlen($matches[0]);
-            } elseif (($endpos = strpos($this->pdfdata, '>', $offset)) !== false) {
+                $objval = \strtr($matches[1], "\x09\x0a\x0c\x0d\x20", '');
+                $offset += \strlen($matches[0]);
+            } elseif (($endpos = \strpos($this->pdfdata, '>', $offset)) !== false) {
                 $offset = $endpos + 1;
             }
         }
@@ -340,50 +340,50 @@ abstract class RawObject
     protected function processDefaultName(int &$offset, string &$objtype, string|array &$objval): bool
     {
         $status = false;
-        if (substr($this->pdfdata, $offset, 6) == 'endobj') {
+        if (\substr($this->pdfdata, $offset, 6) == 'endobj') {
             // indirect object
             $objtype = 'endobj';
             $offset += 6;
             $status = true;
-        } elseif (substr($this->pdfdata, $offset, 4) == 'null') {
+        } elseif (\substr($this->pdfdata, $offset, 4) == 'null') {
             // null object
             $objtype = 'null';
             $offset += 4;
             $objval = 'null';
             $status = true;
-        } elseif (substr($this->pdfdata, $offset, 4) == 'true') {
+        } elseif (\substr($this->pdfdata, $offset, 4) == 'true') {
             // boolean true object
             $objtype = 'boolean';
             $offset += 4;
             $objval = 'true';
             $status = true;
-        } elseif (substr($this->pdfdata, $offset, 5) == 'false') {
+        } elseif (\substr($this->pdfdata, $offset, 5) == 'false') {
             // boolean false object
             $objtype = 'boolean';
             $offset += 5;
             $objval = 'false';
             $status = true;
-        } elseif (substr($this->pdfdata, $offset, 6) == 'stream') {
+        } elseif (\substr($this->pdfdata, $offset, 6) == 'stream') {
             // start stream object
             $objtype = 'stream';
             $offset += 6;
-            if (preg_match('/^([\r]?[\n])/isU', substr($this->pdfdata, $offset), $matches) == 1) {
-                $offset += strlen($matches[0]);
+            if (\preg_match('/^([\r]?[\n])/isU', \substr($this->pdfdata, $offset), $matches) == 1) {
+                $offset += \strlen($matches[0]);
                 if (
-                    preg_match(
+                    \preg_match(
                         '/(endstream)[\x09\x0a\x0c\x0d\x20]/isU',
-                        substr($this->pdfdata, $offset),
+                        \substr($this->pdfdata, $offset),
                         $matches,
                         PREG_OFFSET_CAPTURE
                     ) == 1
                 ) {
-                    $objval = substr($this->pdfdata, $offset, $matches[0][1]);
+                    $objval = \substr($this->pdfdata, $offset, $matches[0][1]);
                     $offset += $matches[1][1];
                 }
             }
 
             $status = true;
-        } elseif (substr($this->pdfdata, $offset, 9) == 'endstream') {
+        } elseif (\substr($this->pdfdata, $offset, 9) == 'endstream') {
             // end stream object
             $objtype = 'endstream';
             $offset += 9;
@@ -411,31 +411,31 @@ abstract class RawObject
     protected function processDefault(int &$offset, string &$objtype, string|array &$objval): void
     {
         if (
-            preg_match(
+            \preg_match(
                 '/^([0-9]+)[\s]+([0-9]+)[\s]+R/iU',
-                substr($this->pdfdata, $offset, 33),
+                \substr($this->pdfdata, $offset, 33),
                 $matches
             ) == 1
         ) {
             // indirect object reference
             $objtype = 'objref';
-            $offset += strlen($matches[0]);
+            $offset += \strlen($matches[0]);
             $objval = (int) $matches[1] . '_' . (int) $matches[2];
         } elseif (
-            preg_match(
+            \preg_match(
                 '/^([0-9]+)[\s]+([0-9]+)[\s]+obj/iU',
-                substr($this->pdfdata, $offset, 33),
+                \substr($this->pdfdata, $offset, 33),
                 $matches
             ) == 1
         ) {
             // object start
             $objtype = 'obj';
             $objval = (int) $matches[1] . '_' . (int) $matches[2];
-            $offset += strlen($matches[0]);
-        } elseif (($numlen = strspn($this->pdfdata, '+-.0123456789', $offset)) > 0) {
+            $offset += \strlen($matches[0]);
+        } elseif (($numlen = \strspn($this->pdfdata, '+-.0123456789', $offset)) > 0) {
             // numeric object
             $objtype = 'numeric';
-            $objval = substr($this->pdfdata, $offset, $numlen);
+            $objval = \substr($this->pdfdata, $offset, $numlen);
             $offset += $numlen;
         }
     }

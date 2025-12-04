@@ -172,10 +172,10 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
         // initial estimate
         $pos = ($row_left + $row_up - $row_upleft);
         // distances
-        $psa = abs($pos - $row_left);
-        $psb = abs($pos - $row_up);
-        $psc = abs($pos - $row_upleft);
-        $pmin = min($psa, $psb, $psc);
+        $psa = \abs($pos - $row_left);
+        $psb = \abs($pos - $row_up);
+        $psc = \abs($pos - $row_upleft);
+        $pmin = \min($psa, $psb, $psc);
         switch ($pmin) {
             case $psa:
                 $ddata[$key][$jdx] = (($row[$idx] + $row_left) & 0xff);
@@ -227,7 +227,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                 continue;
             }
 
-            if (! is_string($val[1])) {
+            if (! \is_string($val[1])) {
                 continue;
             }
 
@@ -239,7 +239,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                     // first object number in the subsection
                     $index_first = (int) $sarr[($key + 1)][1][0][1];
                     // number of entries in the subsection
-                    // $index_entries = intval($sarr[($key + 1)][1][1][1]);
+                    // $index_entries = \intval($sarr[($key + 1)][1][1][1]);
                     break;
                 case 'Prev':
                     $this->processXrefPrev($sarr, $key, $prevxref);
@@ -284,7 +284,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     protected function processXrefDecodeParms(array $sarr, int $key, int &$columns): void
     {
         $decpar = $sarr[($key + 1)][1];
-        if (! is_array($decpar)) {
+        if (! \is_array($decpar)) {
             return;
         }
 
@@ -295,7 +295,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
             }
         }
 
-        $columns = max(0, $columns);
+        $columns = \max(0, $columns);
     }
 
     /**
@@ -333,8 +333,8 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                 if (
                     empty($sarr[($key + 1)][1][0][1])
                     || empty($sarr[($key + 1)][1][1][1])
-                    || !is_string($sarr[($key + 1)][1][0][1])
-                    || !is_string($sarr[($key + 1)][1][1][1])
+                    || !\is_string($sarr[($key + 1)][1][0][1])
+                    || !\is_string($sarr[($key + 1)][1][1][1])
                 ) {
                     break;
                 }
@@ -370,7 +370,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
         if (
             empty($sarr[($key + 1)])
             || empty($sarr[($key + 1)][1])
-            || !is_string($sarr[($key + 1)][1])
+            || !\is_string($sarr[($key + 1)][1])
             || ($sarr[($key + 1)][0] !== 'objref')
         ) {
             return;
