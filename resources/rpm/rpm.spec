@@ -18,7 +18,7 @@ BuildArch: noarch
 
 Requires:  php(language) >= 8.1.0
 Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) < 2.0.0
-Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) >= 2.0.34
+Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) >= 2.0.35
 Requires:  php-pcre
 
 Provides:  php-composer(%{c_vendor}/%{gh_project}) = %{version}
@@ -45,7 +45,7 @@ rm -rf $RPM_BUILD_ROOT
 #%config(noreplace) %{_configpath}*
 
 %changelog
-* Thu Jul 02 2024 Nicola Asuni <info@tecnick.com> 2.1.0-1
+* Thu Jul 02 2026 Nicola Asuni <info@tecnick.com> 2.1.0-1
 - Changed package name, add provides section
-* Tue May 05 2024 Nicola Asuni <info@tecnick.com> 2.0.0-1
+* Tue May 05 2026 Nicola Asuni <info@tecnick.com> 2.0.0-1
 - Initial Commit
