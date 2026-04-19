@@ -18,6 +18,9 @@ namespace Test;
 
 use Com\Tecnick\Pdf\Parser\Process\Xref;
 
+/**
+ * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
+ */
 class XrefHarness extends Xref
 {
     /** @var array<int, array{0:string,1:string|array<int, mixed>,2:int,3?:array{string, array<string>}}> */
@@ -32,7 +35,7 @@ class XrefHarness extends Xref
     }
 
     /**
-     * @param array<int, array{0:string,1:string|array<int, mixed>,2:int,3?:array{string, array<string>}}> $indirectObject
+     * @param array<int, RawObjectArray> $indirectObject
      */
     public function setStubIndirectObject(array $indirectObject): void
     {
