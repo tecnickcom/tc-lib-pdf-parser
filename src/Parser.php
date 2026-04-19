@@ -35,6 +35,7 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
  * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  *
  * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
+ * @phpstan-import-type XrefData from \Com\Tecnick\Pdf\Parser\Process\XrefStream
  */
 class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
 {
@@ -71,16 +72,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      * @param string $data PDF data to parse.
      *
      * @return array{
-     *             0: array{
-     *                    'trailer': array{
-     *                        'encrypt'?: string,
-     *                        'id': array<int, string>,
-     *                        'info': string,
-     *                        'root': string,
-     *                        'size': int,
-     *                    },
-     *                    'xref': array<string, int>,
-     *                },
+     *             0: XrefData,
      *             1: array<string, array<int, RawObjectArray>>,
      *         }
      */

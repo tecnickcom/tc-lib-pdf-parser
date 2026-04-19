@@ -33,6 +33,17 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
  *
  * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
  *
+ * @phpstan-type XrefData array{
+ *                 'trailer': array{
+ *                     'encrypt'?: string,
+ *                     'id': array<int, string>,
+ *                     'info': string,
+ *                     'root': string,
+ *                     'size': int,
+ *                 },
+ *                 'xref': array<string, int>,
+ *             }
+ *
  * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
  */
 abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
@@ -40,17 +51,8 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     /**
      * Process object indexes
      *
-     * @param array{
-     *        'trailer': array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    } $xref    XREF data
-     * @param int $obj_num Object number
+     * @param XrefData                   $xref    XREF data
+     * @param int                        $obj_num Object number
      * @param array<int, array<int, int>> $sdata   Stream data
      */
     protected function processObjIndexes(array &$xref, int &$obj_num, array $sdata): void
@@ -193,22 +195,13 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * Process XREF types
      *
      * @param array<int, RawObjectArray> $sarr        Stream data
-     * @param array{
-     *        'trailer': array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    } $xref        XREF data
-     * @param array<int, int>   $wbt         WBT data
-     * @param int|null          $index_first Index first
-     * @param int|null          $prevxref    Previous XREF
-     * @param int               $columns     Number of columns
-     * @param bool              $valid_crs   Valid CRS
-     * @param bool              $filltrailer Fill trailer
+     * @param XrefData                   $xref        XREF data
+     * @param array<int, int>            $wbt         WBT data
+     * @param int|null                   $index_first Index first
+     * @param int|null                   $prevxref    Previous XREF
+     * @param int                        $columns     Number of columns
+     * @param bool                       $valid_crs   Valid CRS
+     * @param bool                       $filltrailer Fill trailer
      *
      * @SuppressWarnings("PHPMD.CyclomaticComplexity")
      */
@@ -301,20 +294,11 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     /**
      * Process XREF type
      *
-     * @param string $type Type
-     * @param array<int, RawObjectArray> $sarr  Stream data
-     * @param int $key Key
-     * @param array{
-     *        'trailer': array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    } $xref XREF data
-     * @param bool $filltrailer Fill trailer
+     * @param string                     $type        Type
+     * @param array<int, RawObjectArray> $sarr        Stream data
+     * @param int                        $key         Key
+     * @param XrefData                   $xref        XREF data
+     * @param bool                       $filltrailer Fill trailer
      */
     protected function processXrefTypeFt(string $type, array $sarr, int $key, array &$xref, bool $filltrailer): void
     {
@@ -351,19 +335,10 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     /**
      * Process XREF type Objref
      *
-     * @param string            $type Type
+     * @param string                     $type Type
      * @param array<int, RawObjectArray> $sarr Stream data
-     * @param int               $key  Key
-     * @param array{
-     *        'trailer': array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    } $xref XREF data
+     * @param int                        $key  Key
+     * @param XrefData                   $xref XREF data
      */
     protected function processXrefObjref(string $type, array $sarr, int $key, array &$xref): void
     {

@@ -30,22 +30,38 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
  * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
  * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
  * @link      https://github.com/tecnickcom/tc-lib-pdf-parser
+ *
+ * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
+ * @phpstan-import-type XrefData from \Com\Tecnick\Pdf\Parser\Process\XrefStream
+ *
+ * @phpstan-type XrefDataPartial array{
+ *                 'trailer'?: array{
+ *                     'encrypt'?: string,
+ *                     'id': array<int, string>,
+ *                     'info': string,
+ *                     'root': string,
+ *                     'size': int,
+ *                 },
+ *                 'xref': array<string, int>,
+ *             }
+ *
+ * @phpstan-type XrefDataInput array{
+ *                 'trailer'?: array{
+ *                     'encrypt'?: string,
+ *                     'id': array<int, string>,
+ *                     'info': string,
+ *                     'root': string,
+ *                     'size': int,
+ *                 },
+ *                 'xref'?: array<string, int>,
+ *             }
  */
 abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
 {
     /**
      * Default empty XREF data.
      *
-     * @var array{
-     *        'trailer': array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    }
+     * @var XrefData
      */
     protected const XREF_EMPTY = [
         'trailer' => [
@@ -61,16 +77,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
     /**
      * XREF data.
      *
-     * @var array{
-     *        'trailer': array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    }
+     * @var XrefData
      */
     protected array $xref = self::XREF_EMPTY;
 
@@ -100,28 +107,10 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
     /**
      * Get Cross-Reference (xref) table and trailer data from PDF document data.
      *
-     * @param int    $offset Xref offset (if know).
-     * @param array{
-     *        'trailer'?: array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref'?: array<string, int>,
-     *    } $xref   Previous xref array (if any).
+     * @param int           $offset Xref offset (if know).
+     * @param XrefDataInput $xref   Previous xref array (if any).
      *
-     * @return array{
-     *        'trailer': array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    } Xref and trailer data.
+     * @return XrefData Xref and trailer data.
      *
      * @SuppressWarnings("PHPMD.CyclomaticComplexity")
      */
@@ -196,28 +185,10 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
     /**
      * Decode the Cross-Reference section
      *
-     * @param int    $startxref Offset at which the xref section starts (position of the 'xref' keyword).
-     * @param array{
-     *        'trailer'?: array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    } $xref      Previous xref array (if any).
+     * @param int              $startxref Offset at which the xref section starts (position of the 'xref' keyword).
+     * @param XrefDataPartial  $xref      Previous xref array (if any).
      *
-     * @return array{
-     *        'trailer': array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    } Xref and trailer data.
+     * @return XrefData Xref and trailer data.
      */
     protected function decodeXref(int $startxref, array $xref): array
     {
@@ -278,28 +249,10 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
     /**
      * Decode the Cross-Reference section
      *
-     * @param array{
-     *        'trailer'?: array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    } $xref    Previous xref array (if any).
+     * @param XrefDataPartial                         $xref    Previous xref array (if any).
      * @param array<array<int, int<-1, max>|string>> $matches Matches containing trailer sections
      *
-     * @return array{
-     *        'trailer': array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    } Xref and trailer data.
+     * @return XrefData Xref and trailer data.
      */
     protected function getTrailerData(array $xref, array $matches): array
     {
@@ -348,28 +301,10 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
     /**
      * Decode the Cross-Reference Stream section
      *
-     * @param int    $startxref Offset at which the xref section starts.
-     * @param array{
-     *        'trailer'?: array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    } $xref      Previous xref array (if any).
+     * @param int             $startxref Offset at which the xref section starts.
+     * @param XrefDataPartial $xref      Previous xref array (if any).
      *
-     * @return array{
-     *        'trailer': array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int>,
-     *    } Xref and trailer data.
+     * @return XrefData Xref and trailer data.
      *
      * @SuppressWarnings("PHPMD.CyclomaticComplexity")
      */

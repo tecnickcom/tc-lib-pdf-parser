@@ -60,6 +60,16 @@ namespace Com\Tecnick\Pdf\Parser\Process;
  *                 2: int,
  *                 3?: array{string, array<string>},
  *             }
+ *
+ * @phpstan-type RawObjectValue string|array<int, array{
+ *                 0: string,
+ *                 1: string|array<int, array{
+ *                     0: string,
+ *                     1: string,
+ *                     2: int,
+ *                 }>,
+ *                 2: int,
+ *             }>
  */
 abstract class RawObject
 {
@@ -142,18 +152,10 @@ abstract class RawObject
      * Process name object
      * \x2F SOLIDUS
      *
-     * @param string                   $char    Symbol to process
-     * @param int                      $offset  Offset
-     * @param string                   $objtype Object type
-     * @param string|array<int, array{
-     *        0: string,
-     *        1: string|array<int, array{
-     *            0: string,
-     *            1: string,
-     *            2: int,
-     *        }>,
-     *        2: int,
-     *    }> $objval  Object content
+     * @param string         $char    Symbol to process
+     * @param int            $offset  Offset
+     * @param string         $objtype Object type
+     * @param RawObjectValue $objval  Object content
      */
     protected function processSolidus(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
@@ -175,18 +177,10 @@ abstract class RawObject
      * Process literal string object
      * \x28 LEFT PARENTHESIS and \x29 RIGHT PARENTHESIS
      *
-     * @param string                   $char    Symbol to process
-     * @param int                      $offset  Offset
-     * @param string                   $objtype Object type
-     * @param string|array<int, array{
-     *        0: string,
-     *        1: string|array<int, array{
-     *            0: string,
-     *            1: string,
-     *            2: int,
-     *        }>,
-     *        2: int,
-     *    }> $objval  Object content
+     * @param string         $char    Symbol to process
+     * @param int            $offset  Offset
+     * @param string         $objtype Object type
+     * @param RawObjectValue $objval  Object content
      */
     protected function processParenthesis(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
@@ -229,18 +223,10 @@ abstract class RawObject
      * Process array content
      * \x5B LEFT SQUARE BRACKET and \x5D RIGHT SQUARE BRACKET
      *
-     * @param string            $char    Symbol to process
-     * @param int               $offset  Offset
-     * @param string            $objtype Object type
-     * @param string|array<int, array{
-     *        0: string,
-     *        1: string|array<int, array{
-     *            0: string,
-     *            1: string,
-     *            2: int,
-     *        }>,
-     *        2: int,
-     *    }> $objval  Object content
+     * @param string         $char    Symbol to process
+     * @param int            $offset  Offset
+     * @param string         $objtype Object type
+     * @param RawObjectValue $objval  Object content
      */
     protected function processBracket(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
@@ -266,18 +252,10 @@ abstract class RawObject
     /**
      * Process \x3C LESS-THAN SIGN and \x3E GREATER-THAN SIGN
      *
-     * @param string                   $char    Symbol to process
-     * @param int                      $offset  Offset
-     * @param string                   $objtype Object type
-     * @param string|array<int, array{
-     *        0: string,
-     *        1: string|array<int, array{
-     *            0: string,
-     *            1: string,
-     *            2: int,
-     *        }>,
-     *        2: int,
-     *    }> $objval  Object content
+     * @param string         $char    Symbol to process
+     * @param int            $offset  Offset
+     * @param string         $objtype Object type
+     * @param RawObjectValue $objval  Object content
      */
     protected function processAngular(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
@@ -323,17 +301,9 @@ abstract class RawObject
     /**
      * Process default
      *
-     * @param int                      $offset  Offset
-     * @param string                   $objtype Object type
-     * @param string|array<int, array{
-     *        0: string,
-     *        1: string|array<int, array{
-     *            0: string,
-     *            1: string,
-     *            2: int,
-     *        }>,
-     *        2: int,
-     *    }> $objval  Object content
+     * @param int            $offset  Offset
+     * @param string         $objtype Object type
+     * @param RawObjectValue $objval  Object content
      *
      * @return bool True in case of match, flase otherwise
      */
@@ -396,17 +366,9 @@ abstract class RawObject
     /**
      * Process default
      *
-     * @param int                      $offset  Offset
-     * @param string                   $objtype Object type
-     * @param string|array<int, array{
-     *        0: string,
-     *        1: string|array<int, array{
-     *            0: string,
-     *            1: string,
-     *            2: int,
-     *        }>,
-     *        2: int,
-     *    }> $objval  Object content
+     * @param int            $offset  Offset
+     * @param string         $objtype Object type
+     * @param RawObjectValue $objval  Object content
      */
     protected function processDefault(int &$offset, string &$objtype, string|array &$objval): void
     {
