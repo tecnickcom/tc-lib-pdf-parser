@@ -1,11 +1,11 @@
 {
-  "name": "tecnickcom/tc-lib-pdf-parser",
+  "name": "tecnickcom/tc-lib-pdf-parser-parser",
   "description": "PHP library to parse PDF documents",
   "type": "library",
   "homepage": "http://www.tecnick.com",
   "license": "LGPL-3.0-or-later",
   "keywords": [
-    "tc-lib-pdf-parser",
+    "tc-lib-pdf-parser-parser",
     "PDF",
     "parser",
     "document"
@@ -22,16 +22,18 @@
     "ext-pcre": "*",
     "tecnickcom/tc-lib-pdf-filter": "^2.0"
   },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
   "config": {
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true
     }
   },
   "require-dev": {
-    "pdepend/pdepend": "2.16.2",
-    "phpmd/phpmd": "2.15.0",
-    "phpunit/phpunit": "13.1.1 || 12.5.17 || 11.5.55 || 10.5.63",
-    "squizlabs/php_codesniffer": "4.0.1",
+    "pdepend/pdepend": "^2.16",
+    "phpmd/phpmd": "^2.15",
+    "phpunit/phpunit": "^13.1 || ^12.5 || ^11.5 || ^10.5",
+    "squizlabs/php_codesniffer": "^4.0",
     "phpcompatibility/php-compatibility": "^10.0.0@dev"
   },
   "autoload": {
@@ -41,5 +43,15 @@
   },
   "autoload-dev": {
     "psr-4": { "Test\\": "test" }
+  },
+  "support": {
+    "issues": "https://github.com/tecnickcom/tc-lib-pdf-parser/issues",
+    "source": "https://github.com/tecnickcom/tc-lib-pdf-parser"
+  },
+  "scripts": {
+    "test": "XDEBUG_MODE=coverage ./vendor/bin/phpunit --stderr test",
+    "cs-check": "./vendor/bin/phpcs --standard=phpcs.xml",
+    "cs-fix": "./vendor/bin/phpcbf --ignore=\"./vendor/\" --standard=psr12 src test",
+    "analyse": "./vendor/phpstan.phar analyse"
   }
 }

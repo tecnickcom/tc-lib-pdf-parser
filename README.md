@@ -1,109 +1,110 @@
 # tc-lib-pdf-parser
-*PHP library to parse PDF documents*
+
+> Parser library for reading and extracting PDF document structures.
 
 [![Latest Stable Version](https://poser.pugx.org/tecnickcom/tc-lib-pdf-parser/version)](https://packagist.org/packages/tecnickcom/tc-lib-pdf-parser)
-![Build](https://github.com/tecnickcom/tc-lib-pdf-parser/actions/workflows/check.yml/badge.svg)
+[![Build](https://github.com/tecnickcom/tc-lib-pdf-parser/actions/workflows/check.yml/badge.svg)](https://github.com/tecnickcom/tc-lib-pdf-parser/actions/workflows/check.yml)
 [![Coverage](https://codecov.io/gh/tecnickcom/tc-lib-pdf-parser/graph/badge.svg?token=SIGYQJG8D4)](https://codecov.io/gh/tecnickcom/tc-lib-pdf-parser)
 [![License](https://poser.pugx.org/tecnickcom/tc-lib-pdf-parser/license)](https://packagist.org/packages/tecnickcom/tc-lib-pdf-parser)
 [![Downloads](https://poser.pugx.org/tecnickcom/tc-lib-pdf-parser/downloads)](https://packagist.org/packages/tecnickcom/tc-lib-pdf-parser)
 
 [![Donate via PayPal](https://img.shields.io/badge/donate-paypal-87ceeb.svg)](https://www.paypal.com/donate/?hosted_button_id=NZUEC5XS8MFBJ)
-*Please consider supporting this project by making a donation via [PayPal](https://www.paypal.com/donate/?hosted_button_id=NZUEC5XS8MFBJ)*
 
-* **category**    Library
-* **package**     \Com\Tecnick\Pdf\Parser
-* **author**      Nicola Asuni <info@tecnick.com>
-* **copyright**   2015-2026 Nicola Asuni - Tecnick.com LTD
-* **license**     https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
-* **link**        https://github.com/tecnickcom/tc-lib-pdf-parser
-* **SRC DOC**     https://tcpdf.org/docs/srcdoc/tc-lib-pdf-parser
+If this library helps your analysis pipeline, please consider [supporting development via PayPal](https://www.paypal.com/donate/?hosted_button_id=NZUEC5XS8MFBJ).
 
-## Description
+---
 
-PHP library to parse PDF documents.
+## Overview
 
-The initial source code has been derived from [TCPDF](<http://www.tcpdf.org>).
+`tc-lib-pdf-parser` parses raw PDF data into structured PHP arrays suitable for extraction, analysis, and downstream processing.
 
+| | |
+|---|---|
+| **Namespace** | `\Com\Tecnick\Pdf\Parser` |
+| **Author** | Nicola Asuni <info@tecnick.com> |
+| **License** | [GNU LGPL v3](https://www.gnu.org/copyleft/lesser.html) - see [LICENSE](LICENSE) |
+| **API docs** | <https://tcpdf.org/docs/srcdoc/tc-lib-pdf-parser> |
+| **Packagist** | <https://packagist.org/packages/tecnickcom/tc-lib-pdf-parser> |
 
-## Getting started
+---
 
-First, you need to install all development dependencies using [Composer](https://getcomposer.org/):
+## Features
 
-```bash
-$ curl -sS https://getcomposer.org/installer | php
-$ mv composer.phar /usr/local/bin/composer
-```
+### Parsing Capabilities
+- Cross-reference and object stream parsing
+- Filter-aware stream decoding integration
+- Structured output suitable for custom extractors
 
-This project include a Makefile that allows you to test and build the project with simple commands.
-To see all available options:
+### Runtime Design
+- Configuration options for tolerant parsing modes
+- Pure-PHP parser with no external service dependency
+- Typed exceptions for error handling
 
-```bash
-make help
-```
+---
 
-To install all the development dependencies:
+## Requirements
 
-```bash
-make deps
-```
+- PHP 8.1 or later
+- Extension: `pcre`
+- Composer
 
-## Running all tests
-
-Before committing the code, please check if it passes all tests using
-
-```bash
-make qa
-```
-
-All artifacts are generated in the target directory.
-
-
-## Example
-
-Examples are located in the `example` directory.
-
-Start a development server (requires PHP 8.0+) using the command:
-
-```
-make server
-```
-
-and point your browser to <http://localhost:8000/index.php>
-
+---
 
 ## Installation
 
-Create a composer.json in your projects root-directory:
-
-```json
-{
-    "require": {
-        "tecnickcom/tc-lib-pdf-parser": "^3.0.0"
-    }
-}
+```bash
+composer require tecnickcom/tc-lib-pdf-parser
 ```
 
-Or add to an existing project with: 
+---
+
+## Quick Start
+
+```php
+<?php
+
+require_once __DIR__ . '/vendor/autoload.php';
+
+$raw = file_get_contents('/path/to/document.pdf');
+$parser = new \Com\Tecnick\Pdf\Parser\Parser(['ignore_filter_errors' => true]);
+$data = $parser->parse((string) $raw);
+
+var_dump($data);
+```
+
+---
+
+## Development
 
 ```bash
-composer require tecnickcom/tc-lib-pdf-parser ^3.0.0
+make deps
+make help
+make qa
 ```
 
+---
 
 ## Packaging
 
-This library is mainly intended to be used and included in other PHP projects using Composer.
-However, since some production environments dictates the installation of any application as RPM or DEB packages,
-this library includes make targets for building these packages (`make rpm` and `make deb`).
-The packages are generated under the `target` directory.
-
-When this library is installed using an RPM or DEB package, you can use it your code by including the autoloader:
-```
-require_once ('/usr/share/php/Com/Tecnick/Pdf/Parser/autoload.php');
+```bash
+make rpm
+make deb
 ```
 
+For system packages, bootstrap with:
 
+```php
+require_once '/usr/share/php/Com/Tecnick/Pdf/Parser/autoload.php';
+```
 
-## Developer(s) Contact
+---
 
-*2026 Nicola Asuni <info@tecnick.com>
+## Contributing
+
+Contributions are welcome. Please review [CONTRIBUTING.md](CONTRIBUTING.md), [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md), and [SECURITY.md](SECURITY.md).
+
+---
+
+## Contact
+
+Nicola Asuni - <info@tecnick.com>
