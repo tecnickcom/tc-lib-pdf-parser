@@ -1,0 +1,245 @@
+<?php
+
+/**
+ * ParserHarness.php
+ *
+ * @since     2011-05-23
+ * @category  Library
+ * @package   Pdfparser
+ * @author    Nicola Asuni <info@tecnick.com>
+ * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
+ * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE.TXT)
+ * @link      https://github.com/tecnickcom/tc-lib-pdf-parser
+ *
+ * This file is part of tc-lib-pdf-parser software library.
+ */
+
+namespace Test;
+
+use Com\Tecnick\Pdf\Parser\Parser;
+
+/**
+ * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
+ */
+class ParserHarness extends Parser
+{
+    /**
+     * @var array{
+     *        'trailer': array{
+     *            'encrypt'?: string,
+     *            'id': array<int, string>,
+     *            'info': string,
+     *            'root': string,
+     *            'size': int,
+     *        },
+     *        'xref': array<string, int>,
+     *    }
+     */
+    private array $stubXrefData = [
+        'trailer' => [
+            'id' => [],
+            'info' => '',
+            'root' => '',
+            'size' => 0,
+        ],
+        'xref' => [],
+    ];
+
+    /** @var array<int, array{0:string,1:int,2:bool}> */
+    private array $indirectCalls = [];
+
+    /** @var array<int, RawObjectArray> */
+    private array $stubIndirectReturn = [['null', 'null', 0]];
+
+    /** @var array<int, RawObjectArray> */
+    private array $rawObjectQueue = [];
+
+    private bool $useParentIndirect = false;
+
+    /**
+     * @param array{
+     *        'trailer': array{
+     *            'encrypt'?: string,
+     *            'id': array<int, string>,
+     *            'info': string,
+     *            'root': string,
+     *            'size': int,
+     *        },
+     *        'xref': array<string, int>,
+     *    } $xref
+     */
+    public function setStubXrefData(array $xref): void
+    {
+        $this->stubXrefData = $xref;
+    }
+
+    /** @return array<int, array{0:string,1:int,2:bool}> */
+    public function getIndirectCalls(): array
+    {
+        return $this->indirectCalls;
+    }
+
+    /**
+     * @param array<int, RawObjectArray> $obj
+     */
+    public function setStubIndirectReturn(array $obj): void
+    {
+        $this->stubIndirectReturn = $obj;
+    }
+
+    /**
+     * @param array<int, RawObjectArray> $queue
+     */
+    public function setRawObjectQueue(array $queue): void
+    {
+        $this->rawObjectQueue = $queue;
+    }
+
+    public function setPdfDataPublic(string $data): void
+    {
+        $this->pdfdata = $data;
+    }
+
+    public function getPdfDataPublic(): string
+    {
+        return $this->pdfdata;
+    }
+
+    /**
+     * @param array<string, array<int, RawObjectArray>> $objects
+     */
+    public function setObjectsPublic(array $objects): void
+    {
+        $this->objects = $objects;
+    }
+
+    /**
+     * @param array<string, int> $xref
+     */
+    public function setXrefMapPublic(array $xref): void
+    {
+        $this->xref = [
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '',
+                'size' => 0,
+            ],
+            'xref' => $xref,
+        ];
+    }
+
+    /**
+     * @param RawObjectArray $obj
+     *
+     * @return RawObjectArray
+     */
+    public function getObjectValPublic(array $obj): array
+    {
+        return $this->getObjectVal($obj);
+    }
+
+    /**
+     * @param array<string>             $filters
+     * @param array<int, RawObjectArray> $sdic
+     *
+     * @return array<string>
+     */
+    public function getFiltersPublic(array $filters, array $sdic, int $key): array
+    {
+        return $this->getFilters($filters, $sdic, $key);
+    }
+
+    /**
+     * @param array<string> $filters
+     *
+     * @return array{0:string,1:array<string>}
+     */
+    public function getDecodedStreamPublic(array $filters, string $stream): array
+    {
+        return $this->getDecodedStream($filters, $stream);
+    }
+
+    /**
+     * @return array<int, RawObjectArray>
+     */
+    public function getRawIndirectObjectPublic(int $offset, bool $decoding): array
+    {
+        return $this->getRawIndirectObject($offset, $decoding);
+    }
+
+    /**
+     * @return array<int, RawObjectArray>
+     */
+    public function callParentGetIndirectObject(string $obj_ref, int $offset = 0, bool $decoding = true): array
+    {
+        $this->useParentIndirect = true;
+        try {
+            return $this->getIndirectObject($obj_ref, $offset, $decoding);
+        } finally {
+            $this->useParentIndirect = false;
+        }
+    }
+
+    /**
+     * @param array{
+     *        'trailer'?: array{
+     *            'encrypt'?: string,
+     *            'id': array<int, string>,
+     *            'info': string,
+     *            'root': string,
+     *            'size': int,
+     *        },
+     *        'xref'?: array<string, int>,
+     *    } $xref
+     *
+     * @return array{
+     *        'trailer': array{
+     *            'encrypt'?: string,
+     *            'id': array<int, string>,
+     *            'info': string,
+     *            'root': string,
+     *            'size': int,
+     *        },
+     *        'xref': array<string, int>,
+     *    }
+     */
+    protected function getXrefData(int $offset = 0, array $xref = []): array
+    {
+        $unused = [$offset, $xref];
+        unset($unused);
+
+        return $this->stubXrefData;
+    }
+
+    /**
+        * @return array<int, RawObjectArray>
+     */
+    protected function getIndirectObject(string $obj_ref, int $offset = 0, bool $decoding = true): array
+    {
+        if ($this->useParentIndirect) {
+            return parent::getIndirectObject($obj_ref, $offset, $decoding);
+        }
+
+        $this->indirectCalls[] = [$obj_ref, $offset, $decoding];
+
+        return $this->stubIndirectReturn;
+    }
+
+    /**
+        * @return RawObjectArray
+     */
+    protected function getRawObject(int $offset = 0): array
+    {
+        if (empty($this->rawObjectQueue)) {
+            return ['endobj', 'endobj', $offset];
+        }
+
+        $obj = \array_shift($this->rawObjectQueue);
+        if ($obj === null) {
+            return ['endobj', 'endobj', $offset];
+        }
+
+        return $obj;
+    }
+}
