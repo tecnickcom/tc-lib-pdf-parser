@@ -18,6 +18,8 @@ If this library helps your analysis pipeline, please consider [supporting develo
 
 `tc-lib-pdf-parser` parses raw PDF data into structured PHP arrays suitable for extraction, analysis, and downstream processing.
 
+The parser is designed for tooling scenarios such as content inspection, metadata extraction, validation, and migration pipelines. It favors clear structured output so applications can build higher-level analysis features without depending on fragile regular-expression parsing.
+
 | | |
 |---|---|
 | **Namespace** | `\Com\Tecnick\Pdf\Parser` |
