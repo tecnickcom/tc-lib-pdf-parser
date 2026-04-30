@@ -232,6 +232,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
         }
 
         $filters = [];
+        $params = [];
         foreach ($sdic as $key => $val) {
             if (! \is_string($val[1])) {
                 continue;
@@ -243,11 +244,13 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
                     $this->getDeclaredStreamLength($stream, $slength, $sdic, $key);
                 } elseif (($val[1] == 'Filter') && (isset($sdic[($key + 1)]))) {
                     $filters = $this->getFilters($filters, $sdic, $key);
+                } elseif (($val[1] == 'DecodeParms') && (isset($sdic[($key + 1)]))) {
+                    $params = $this->getDecodeParms($sdic, $key);
                 }
             }
         }
 
-        return $this->getDecodedStream($filters, $stream);
+        return $this->getDecodedStream($filters, $stream, $params);
     }
 
     /**
@@ -318,23 +321,142 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
     }
 
     /**
+     * Get DecodeParms
+     *
+     * @param array<int, RawObjectArray> $sdic    Stream's dictionary array.
+     * @param int               $key     Index
+     *
+     * @return array<string, mixed> Decode parameters
+     *
+     * @SuppressWarnings("PHPMD.CyclomaticComplexity")
+     */
+    protected function getDecodeParms(array $sdic, int $key): array
+    {
+        // resolve indirect object
+        $objval = $this->getObjectVal($sdic[($key + 1)]);
+        $params = [];
+
+        switch ($objval[0]) {
+            case '<<':
+                // single DecodeParms dictionary
+                if (\is_array($objval[1])) {
+                    $params = $this->buildDecodeParms($objval[1]);
+                }
+
+                break;
+            case '[':
+                // array of DecodeParms (one per filter)
+                if (\is_array($objval[1])) {
+                    foreach ($objval[1] as $parm) {
+                        if (! \is_array($parm)) {
+                            continue;
+                        }
+
+                        if ($parm[0] == '<<') {
+                            if (\is_array($parm[1])) {
+                                $params = $this->buildDecodeParms($parm[1]);
+                                break;
+                            }
+                        } elseif ($parm[0] == 'null') {
+                            continue;
+                        }
+                    }
+                }
+
+                break;
+        }
+
+        return $params;
+    }
+
+    /**
+     * Build DecodeParms associative array from raw dictionary
+     *
+     * @param array<int, RawObjectArray> $parmdict Raw parameter dictionary.
+     *
+     * @return array<string, mixed> Decoded parameters
+     */
+    private function buildDecodeParms(array $parmdict): array
+    {
+        $params = [];
+        $count = \count($parmdict);
+        for ($i = 0; $i < $count; $i += 2) {
+            if (!isset($parmdict[$i]) || !\is_array($parmdict[$i])) {
+                continue;
+            }
+
+            if ($parmdict[$i][0] !== '/' || !\is_string($parmdict[$i][1])) {
+                continue;
+            }
+
+            $key = $parmdict[$i][1];
+            if (!isset($parmdict[$i + 1]) || !\is_array($parmdict[$i + 1])) {
+                continue;
+            }
+
+            /** @var RawObjectArray $val */
+            $val = $parmdict[$i + 1];
+            // resolve indirect references
+            $val = $this->getObjectVal($val);
+
+            // extract the value based on type
+            $paramVal = $this->extractParamValue($val);
+            if ($paramVal !== null) {
+                $params[$key] = $paramVal;
+            }
+        }
+
+        return $params;
+    }
+
+    /**
+     * Extract parameter value from a raw object
+     *
+     * @param RawObjectArray $val Raw object value
+     *
+     * @return mixed The extracted parameter value, or null if unable to extract
+     *
+     * @SuppressWarnings("PHPMD.CyclomaticComplexity")
+     */
+    private function extractParamValue(array $val): mixed
+    {
+        if (!isset($val[0]) || !\is_string($val[0])) {
+            return null;
+        }
+
+        return match ($val[0]) {
+            'numeric' => isset($val[1]) && \is_string($val[1]) ? (int) $val[1] : null,
+            '/' => isset($val[1]) && \is_string($val[1]) ? $val[1] : null,
+            'string' => isset($val[1]) && \is_string($val[1]) ? $val[1] : null,
+            'true' => true,
+            'false' => false,
+            default => null,
+        };
+    }
+
+
+
+
+
+    /**
      * Decode the specified stream.
      *
      * @param array<string> $filters Array of decoding filters to apply
      * @param string        $stream  Stream to decode.
+     * @param array<string, mixed> $params DecodeParms dictionary (optional).
      *
      * @return array{
      *             0: string,
      *             1: array<string>,
      *         } Decoded stream data and remaining filters.
      */
-    protected function getDecodedStream(array $filters, string $stream): array
+    protected function getDecodedStream(array $filters, string $stream, array $params = []): array
     {
         // decode the stream
         $errorfilters = [];
         try {
             $filter = new Filter();
-            $stream = $filter->decodeAll($filters, $stream);
+            $stream = $filter->decodeAll($filters, $stream, $params);
         } catch (\Com\Tecnick\Pdf\Filter\Exception $exception) {
             if ($this->cfg['ignore_filter_errors']) {
                 $errorfilters = $filters;

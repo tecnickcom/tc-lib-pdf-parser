@@ -52,9 +52,9 @@ class ParserTest extends TestCase
     public static function getParseProvider(): array
     {
         return [
-            ['resources/test/example_005.pdf', 'b1c58b8f34df2974a339f8fe2909cf59'],
-            ['resources/test/example_036.pdf', '78cc03b354588660ccc1ec6453b4fdba'],
-            ['resources/test/example_046.pdf', 'ba410ddc927da4b636d749b503b96252'],
+            ['resources/test/example_005.pdf', '510a5ea860470dae0781f4bd8d5eb250'],
+            ['resources/test/example_036.pdf', '2869501cf41a4c4a0402c00832329e25'],
+            ['resources/test/example_046.pdf', 'cfaee514b9c09aa282b4e2a8f0061a3d'],
         ];
     }
 }

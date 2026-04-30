@@ -151,13 +151,24 @@ class ParserHarness extends Parser
     }
 
     /**
+     * @param array<int, RawObjectArray> $sdic
+     *
+     * @return array<string, mixed>
+     */
+    public function getDecodeParmsPublic(array $sdic, int $key): array
+    {
+        return $this->getDecodeParms($sdic, $key);
+    }
+
+    /**
      * @param array<string> $filters
+     * @param array<string, mixed> $params
      *
      * @return array{0:string,1:array<string>}
      */
-    public function getDecodedStreamPublic(array $filters, string $stream): array
+    public function getDecodedStreamPublic(array $filters, string $stream, array $params = []): array
     {
-        return $this->getDecodedStream($filters, $stream);
+        return $this->getDecodedStream($filters, $stream, $params);
     }
 
     /**
