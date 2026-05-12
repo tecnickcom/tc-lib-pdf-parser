@@ -17,8 +17,8 @@
 namespace Test;
 
 use Com\Tecnick\Pdf\Parser\Parser;
-use PHPUnit\Framework\TestCase;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Filter Test
@@ -33,6 +33,9 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 class ParserTest extends TestCase
 {
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
     #[DataProvider('getParseProvider')]
     public function testParse(string $filename, string $hash): void
     {

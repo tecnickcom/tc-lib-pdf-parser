@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * XrefStream.php
  *
@@ -58,18 +60,19 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     protected function processObjIndexes(array &$xref, int &$obj_num, array $sdata): void
     {
         foreach ($sdata as $sdatum) {
-            switch ($sdatum[0]) {
+            $entryType = (int) ($sdatum[0] ?? 0);
+            switch ($entryType) {
                 case 0:
                     // (f) linked list of free objects
                     break;
                 case 1:
                     // (n) objects that are in use but are not compressed
                     // create unique object index: [object number]_[generation number]
-                    $index = $obj_num . '_' . $sdatum[2];
+                    $index = $obj_num . '_' . (int) ($sdatum[2] ?? 0);
                     // check if object already exist
-                    if (! isset($xref['xref'][$index])) {
+                    if (!\array_key_exists($index, $xref['xref'])) {
                         // store object offset position
-                        $xref['xref'][$index] = $sdatum[1];
+                        $xref['xref'][$index] = (int) ($sdatum[1] ?? 0);
                     }
 
                     break;
@@ -77,7 +80,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                     // compressed objects
                     // $row[1] = object number of the object stream in which this object is stored
                     // $row[2] = index of this object within the object stream
-                    $index = $sdatum[1] . '_0_' . $sdatum[2];
+                    $index = (int) ($sdatum[1] ?? 0) . '_0_' . (int) ($sdatum[2] ?? 0);
                     $xref['xref'][$index] = -1;
                     break;
                 default:
@@ -96,48 +99,53 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * @param array<int, array<int, int>> $ddata    Decoded data
      * @param int                         $columns  Number of columns
      * @param array<int, int>             $prev_row Previous row
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     protected function pngUnpredictor(array $sdata, array &$ddata, int $columns, array $prev_row): void
     {
         // for each row apply PNG unpredictor
         foreach ($sdata as $key => $row) {
             // initialize new row
-            $ddata[$key] = [];
+            $filllen = \max(0, $columns);
+            $ddata[$key] = \array_fill(0, $filllen, 0);
             // get PNG predictor value
-            $predictor = (10 + $row[0]);
+            $predictor = 10 + (int) ($row[0] ?? 0);
             // for each byte on the row
             for ($idx = 1; $idx <= $columns; ++$idx) {
                 // new index
-                $jdx = ($idx - 1);
-                $row_up = $prev_row[$jdx];
-                if ($idx == 1) {
+                $jdx = $idx - 1;
+                $row_up = (int) ($prev_row[$jdx] ?? 0);
+                if ($idx === 1) {
                     $row_left = 0;
                     $row_upleft = 0;
                 } else {
-                    $row_left = $row[($idx - 1)];
-                    $row_upleft = $prev_row[($jdx - 1)];
+                    $row_left = (int) ($row[$idx - 1] ?? 0);
+                    $row_upleft = (int) ($prev_row[$jdx - 1] ?? 0);
                 }
+
+                $row_value = (int) ($row[$idx] ?? 0);
 
                 switch ($predictor) {
                     case 10:
                         // PNG prediction (on encoding, PNG None on all rows)
-                        $ddata[$key][$jdx] = $row[$idx];
+                        $ddata[$key][$jdx] = $row_value;
                         break;
                     case 11:
                         // PNG prediction (on encoding, PNG Sub on all rows)
-                        $ddata[$key][$jdx] = (($row[$idx] + $row_left) & 0xff);
+                        $ddata[$key][$jdx] = ($row_value + $row_left) & 0xff;
                         break;
                     case 12:
                         // PNG prediction (on encoding, PNG Up on all rows)
-                        $ddata[$key][$jdx] = (($row[$idx] + $row_up) & 0xff);
+                        $ddata[$key][$jdx] = ($row_value + $row_up) & 0xff;
                         break;
                     case 13:
                         // PNG prediction (on encoding, PNG Average on all rows)
-                        $ddata[$key][$jdx] = (($row[$idx] + (($row_left + $row_up) / 2)) & 0xff);
+                        $ddata[$key][$jdx] = ($row_value + \intdiv($row_left + $row_up, 2)) & 0xff;
                         break;
                     case 14:
                         // PNG prediction (on encoding, PNG Paeth on all rows)
-                        $this->minDistance($ddata, $key, $row, $idx, $jdx, $row_left, $row_up, $row_upleft);
+                        $this->minDistance($ddata, $key, $row_value, $jdx, [$row_left, $row_up, $row_upleft]);
                         break;
                     default:
                         // PNG prediction (on encoding, PNG optimum)
@@ -154,25 +162,18 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      *
      * @param array<int, array<int, int>> $ddata      Decoded data
      * @param int                         $key        Key
-     * @param array<int, int>             $row        Row
-     * @param int                         $idx        Index
+     * @param int                         $row_value  Current row value
      * @param int                         $jdx        Jdx
-     * @param int                         $row_left   Row left
-     * @param int                         $row_up     Row up
-     * @param int                         $row_upleft Row upleft
+     * @param array{0:int, 1:int, 2:int}  $rows       Left, up and up-left row values
      */
-    protected function minDistance(
-        array &$ddata,
-        int $key,
-        array $row,
-        int $idx,
-        int $jdx,
-        int $row_left,
-        int $row_up,
-        int $row_upleft,
-    ): void {
+    protected function minDistance(array &$ddata, int $key, int $row_value, int $jdx, array $rows): void
+    {
+        $row_left = $rows[0];
+        $row_up = $rows[1];
+        $row_upleft = $rows[2];
+
         // initial estimate
-        $pos = ($row_left + $row_up - $row_upleft);
+        $pos = $row_left + $row_up - $row_upleft;
         // distances
         $psa = \abs($pos - $row_left);
         $psb = \abs($pos - $row_up);
@@ -180,13 +181,13 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
         $pmin = \min($psa, $psb, $psc);
         switch ($pmin) {
             case $psa:
-                $ddata[$key][$jdx] = (($row[$idx] + $row_left) & 0xff);
+                $ddata[$key][$jdx] = ($row_value + $row_left) & 0xff;
                 break;
             case $psb:
-                $ddata[$key][$jdx] = (($row[$idx] + $row_up) & 0xff);
+                $ddata[$key][$jdx] = ($row_value + $row_up) & 0xff;
                 break;
             case $psc:
-                $ddata[$key][$jdx] = (($row[$idx] + $row_upleft) & 0xff);
+                $ddata[$key][$jdx] = ($row_value + $row_upleft) & 0xff;
                 break;
         }
     }
@@ -197,54 +198,50 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * @param array<int, RawObjectArray> $sarr        Stream data
      * @param XrefData                   $xref        XREF data
      * @param array<int, int>            $wbt         WBT data
-     * @param int|null                   $index_first Index first
-     * @param int|null                   $prevxref    Previous XREF
-     * @param int                        $columns     Number of columns
-     * @param bool                       $valid_crs   Valid CRS
+     * @param array{index_first: int|null, prevxref: int|null, columns: int, valid_crs: bool} $state Parsing state
      * @param bool                       $filltrailer Fill trailer
      *
      * @SuppressWarnings("PHPMD.CyclomaticComplexity")
      */
-    protected function processXrefType(
-        array $sarr,
-        array &$xref,
-        array &$wbt,
-        ?int &$index_first,
-        ?int &$prevxref,
-        int &$columns,
-        bool &$valid_crs,
-        bool $filltrailer
-    ): void {
+    protected function processXrefType(array $sarr, array &$xref, array &$wbt, array &$state, bool $filltrailer): void
+    {
         foreach ($sarr as $key => $val) {
             if ($val[0] !== '/') {
                 continue;
             }
 
-            if (! \is_string($val[1])) {
+            if (!\is_string($val[1])) {
                 continue;
             }
 
+            $next = $sarr[$key + 1] ?? null;
+
             switch ($val[1]) {
                 case 'Type':
-                    $valid_crs = (($sarr[($key + 1)][0] == '/') && ($sarr[($key + 1)][1] == 'XRef'));
+                    $state['valid_crs'] = \is_array($next) && $next[0] === '/' && $next[1] === 'XRef';
                     break;
                 case 'Index':
                     // first object number in the subsection
-                    $index_first = (int) $sarr[($key + 1)][1][0][1];
+                    $indexFirst = $next[1][0][1] ?? null;
+                    if (\is_array($next) && \is_scalar($indexFirst)) {
+                        $state['index_first'] = (int) $indexFirst;
+                    }
                     // number of entries in the subsection
                     // $index_entries = \intval($sarr[($key + 1)][1][1][1]);
                     break;
                 case 'Prev':
-                    $this->processXrefPrev($sarr, $key, $prevxref);
+                    $this->processXrefPrev($next, $state['prevxref']);
                     break;
                 case 'W':
                     // number of bytes (in the decoded stream) of the corresponding field
-                    $wbt[0] = (int) $sarr[($key + 1)][1][0][1];
-                    $wbt[1] = (int) $sarr[($key + 1)][1][1][1];
-                    $wbt[2] = (int) $sarr[($key + 1)][1][2][1];
+                    if (\is_array($next)) {
+                        $wbt[0] = (int) ($next[1][0][1] ?? 0);
+                        $wbt[1] = (int) ($next[1][1][1] ?? 0);
+                        $wbt[2] = (int) ($next[1][2][1] ?? 0);
+                    }
                     break;
                 case 'DecodeParms':
-                    $this->processXrefDecodeParms($sarr, $key, $columns);
+                    $this->processXrefDecodeParms($next, $state['columns']);
                     break;
             }
 
@@ -255,35 +252,34 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     /**
      * Process XREF type Prev
      *
-     * @param array<int, RawObjectArray> $sarr     Stream data
-     * @param int               $key      Key
-     * @param int|null               $prevxref Previous XREF
+     * @param RawObjectArray|null $next     Next token
+     * @param int|null            $prevxref Previous XREF
      */
-    protected function processXrefPrev(array $sarr, int $key, ?int &$prevxref): void
+    protected function processXrefPrev(?array $next, ?int &$prevxref): void
     {
-        if ($sarr[($key + 1)][0] == 'numeric') {
+        if (\is_array($next) && $next[0] === 'numeric') {
             // get previous xref offset
-            $prevxref = (int) $sarr[($key + 1)][1];
+            $prevxref = (int) $next[1];
         }
     }
 
     /**
      * Process XREF type DecodeParms
      *
-     * @param array<int, RawObjectArray> $sarr Stream data
-     * @param int               $key     Key
-     * @param int               $columns Number of columns
+     * @param RawObjectArray|null $next    Next token
+     * @param int                 $columns Number of columns
      */
-    protected function processXrefDecodeParms(array $sarr, int $key, int &$columns): void
+    protected function processXrefDecodeParms(?array $next, int &$columns): void
     {
-        $decpar = $sarr[($key + 1)][1];
-        if (! \is_array($decpar)) {
+        $decpar = $next[1] ?? null;
+        if (!\is_array($decpar)) {
             return;
         }
 
         foreach ($decpar as $kdc => $vdc) {
-            if (($vdc[0] == '/') && ($vdc[1] == 'Columns') && ($decpar[($kdc + 1)][0] == 'numeric')) {
-                $columns = (int) $decpar[($kdc + 1)][1];
+            $nextDecpar = $decpar[$kdc + 1] ?? null;
+            if (\is_array($nextDecpar) && $vdc[0] === '/' && $vdc[1] === 'Columns' && $nextDecpar[0] === 'numeric') {
+                $columns = (int) $nextDecpar[1];
                 break;
             }
         }
@@ -302,32 +298,41 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      */
     protected function processXrefTypeFt(string $type, array $sarr, int $key, array &$xref, bool $filltrailer): void
     {
-        if (! $filltrailer) {
+        if (!$filltrailer) {
             return;
+        }
+
+        $next = $sarr[$key + 1] ?? null;
+
+        if ($xref['trailer'] === []) {
+            $xref['trailer'] = [
+                'id' => [],
+                'info' => '',
+                'root' => '',
+                'size' => 0,
+            ];
         }
 
         switch ($type) {
             case 'Size':
-                if ($sarr[($key + 1)][0] == 'numeric') {
-                    $xref['trailer']['size'] = (int) $sarr[($key + 1)][1];
+                if (\is_array($next) && $next[0] === 'numeric') {
+                    $xref['trailer']['size'] = (int) $next[1];
                 }
 
                 break;
             case 'ID':
-                if (
-                    empty($sarr[($key + 1)][1][0][1])
-                    || empty($sarr[($key + 1)][1][1][1])
-                    || !\is_string($sarr[($key + 1)][1][0][1])
-                    || !\is_string($sarr[($key + 1)][1][1][1])
-                ) {
+                $id0 = $next[1][0][1] ?? null;
+                $id1 = $next[1][1][1] ?? null;
+                if (!\is_array($next) || !\is_string($id0) || !\is_string($id1) || $id0 === '' || $id1 === '') {
                     break;
                 }
-                $xref['trailer']['id'] = [];
-                $xref['trailer']['id'][0] = $sarr[($key + 1)][1][0][1];
-                $xref['trailer']['id'][1] = $sarr[($key + 1)][1][1][1];
+                $xref['trailer']['id'] = [
+                    $id0,
+                    $id1,
+                ];
                 break;
             default:
-                $this->processXrefObjref($type, $sarr, $key, $xref);
+                $xref = $this->processXrefObjref($type, $sarr, $key, $xref);
                 break;
         }
     }
@@ -339,19 +344,20 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * @param array<int, RawObjectArray> $sarr Stream data
      * @param int                        $key  Key
      * @param XrefData                   $xref XREF data
+     *
+     * @return XrefData XREF data.
      */
-    protected function processXrefObjref(string $type, array $sarr, int $key, array &$xref): void
+    protected function processXrefObjref(string $type, array $sarr, int $key, array $xref): array
     {
-        if (
-            empty($sarr[($key + 1)])
-            || empty($sarr[($key + 1)][1])
-            || !\is_string($sarr[($key + 1)][1])
-            || ($sarr[($key + 1)][0] !== 'objref')
-        ) {
-            return;
+        $next = $sarr[$key + 1] ?? null;
+        if (!\is_array($next) || $next[0] !== 'objref') {
+            return $xref;
         }
 
-        $val = $sarr[($key + 1)][1];
+        $val = $next[1];
+        if (!\is_string($val)) {
+            return $xref;
+        }
 
         switch ($type) {
             case 'Root':
@@ -364,5 +370,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                 $xref['trailer']['encrypt'] = $val;
                 break;
         }
+
+        return $xref;
     }
 }

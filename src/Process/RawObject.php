@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * RawObject.php
  *
@@ -126,7 +128,7 @@ abstract class RawObject
         $offset += \strspn($this->pdfdata, "\x00\x09\x0a\x0c\x0d\x20", $offset);
         // get first char
         $char = $this->pdfdata[$offset];
-        if ($char == '%') { // \x25 PERCENT SIGN
+        if ($char === '%') { // \x25 PERCENT SIGN
             // skip comment and search for next token
             $next = \strcspn($this->pdfdata, "\r\n", $offset);
             if ($next > 0) {
@@ -138,10 +140,11 @@ abstract class RawObject
         $objtype = '';
         $objval = '';
         // map symbols with corresponding processing methods
-        if (isset(self::SYMBOLMETHOD[$char])) {
-            $method = 'process' . self::SYMBOLMETHOD[$char];
+        $methodSuffix = self::SYMBOLMETHOD[$char] ?? null;
+        if (\is_string($methodSuffix)) {
+            $method = 'process' . $methodSuffix;
             $this->$method($char, $offset, $objtype, $objval);
-        } elseif ($this->processDefaultName($offset, $objtype, $objval) === false) {
+        } elseif (!$this->processDefaultName($offset, $objtype, $objval)) {
             $this->processDefault($offset, $objtype, $objval);
         }
 
@@ -153,20 +156,22 @@ abstract class RawObject
      * \x2F SOLIDUS
      *
      * @param string         $char    Symbol to process
-     * @param int            $offset  Offset
-     * @param string         $objtype Object type
-     * @param RawObjectValue $objval  Object content
+     * @param-out int       $offset  Offset after processing
+     * @param-out string    $objtype Object type after processing
+     * @param-out string    $objval  Object content after processing
      */
     protected function processSolidus(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
         $objtype = $char;
         ++$offset;
+        $matches = [];
         if (
             \preg_match(
                 '/^([^\x00\x09\x0a\x0c\x0d\x20\s\x28\x29\x3c\x3e\x5b\x5d\x7b\x7d\x2f\x25]+)/',
                 \substr($this->pdfdata, $offset, 256),
-                $matches
-            ) == 1
+                $matches,
+            ) === 1
+            && ($matches[1] ?? null) !== null
         ) {
             $objval = $matches[1]; // unescaped value
             $offset += \strlen($objval);
@@ -177,23 +182,20 @@ abstract class RawObject
      * Process literal string object
      * \x28 LEFT PARENTHESIS and \x29 RIGHT PARENTHESIS
      *
-     * @param string         $char    Symbol to process
-     * @param int            $offset  Offset
-     * @param string         $objtype Object type
-     * @param RawObjectValue $objval  Object content
+     * @param string      $char    Symbol to process
+     * @param-out int    $offset  Offset after processing
+     * @param-out string $objtype Object type after processing
+     * @param-out string $objval  Object content after processing
      */
     protected function processParenthesis(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
         $objtype = $char;
         ++$offset;
         $strpos = $offset;
-        if ($char == '(') {
+        if ($char === '(') {
             $open_bracket = 1;
-            while ($open_bracket > 0) {
-                if (! isset($this->pdfdata[$strpos])) {
-                    break;
-                }
-
+            $pdflen = \strlen($this->pdfdata);
+            while ($open_bracket > 0 && $strpos < $pdflen) {
                 $chr = $this->pdfdata[$strpos];
                 switch ($chr) {
                     case '\\':
@@ -214,7 +216,7 @@ abstract class RawObject
                 ++$strpos;
             }
 
-            $objval = \substr($this->pdfdata, $offset, ($strpos - $offset - 1));
+            $objval = \substr($this->pdfdata, $offset, $strpos - $offset - 1);
             $offset = $strpos;
         }
     }
@@ -223,24 +225,24 @@ abstract class RawObject
      * Process array content
      * \x5B LEFT SQUARE BRACKET and \x5D RIGHT SQUARE BRACKET
      *
-     * @param string         $char    Symbol to process
-     * @param int            $offset  Offset
-     * @param string         $objtype Object type
-     * @param RawObjectValue $objval  Object content
+     * @param string       $char    Symbol to process
+     * @param-out int     $offset  Offset after processing
+     * @param-out string  $objtype Object type after processing
+     * @param-out array   $objval  Object content after processing
      */
     protected function processBracket(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
         // array object
         $objtype = $char;
         ++$offset;
-        if ($char == '[') {
+        if ($char === '[') {
             // get array content
             $objval = [];
             do {
                 $element = $this->getRawObject($offset);
                 $offset = $element[2];
                 $objval[] = $element; // @phpstan-ignore parameterByRef.type
-            } while ($element[0] != ']');
+            } while ($element[0] !== ']');
 
             if (\count($objval) > 0) {
                 // remove closing delimiter
@@ -252,25 +254,25 @@ abstract class RawObject
     /**
      * Process \x3C LESS-THAN SIGN and \x3E GREATER-THAN SIGN
      *
-     * @param string         $char    Symbol to process
-     * @param int            $offset  Offset
-     * @param string         $objtype Object type
-     * @param RawObjectValue $objval  Object content
+     * @param string       $char    Symbol to process
+     * @param-out int     $offset  Offset after processing
+     * @param-out string  $objtype Object type after processing
+     * @param-out string|array $objval  Object content after processing
      */
     protected function processAngular(string $char, int &$offset, string &$objtype, string|array &$objval): void
     {
-        if (isset($this->pdfdata[($offset + 1)]) && ($this->pdfdata[($offset + 1)] === $char)) {
+        if (($this->pdfdata[$offset + 1] ?? null) === $char) {
             // dictionary object
             $objtype = $char . $char;
             $offset += 2;
-            if ($char == '<') {
+            if ($char === '<') {
                 // get array content
                 $objval = [];
                 do {
                     $element = $this->getRawObject($offset);
                     $offset = $element[2];
                     $objval[] = $element; // @phpstan-ignore parameterByRef.type
-                } while ($element[0] != '>>');
+                } while ($element[0] !== '>>');
 
                 if (\count($objval) > 0) {
                     // remove closing delimiter
@@ -281,13 +283,13 @@ abstract class RawObject
             // hexadecimal string object
             $objtype = $char;
             ++$offset;
+            $matches = [];
             if (
-                ($char == '<')
-                && (\preg_match(
-                    '/^([0-9A-Fa-f\x09\x0a\x0c\x0d\x20]+)>/iU',
-                    \substr($this->pdfdata, $offset),
-                    $matches
-                ) == 1)
+                $char === '<'
+                && \preg_match('/^([0-9A-Fa-f\x09\x0a\x0c\x0d\x20]+)>/iU', \substr($this->pdfdata, $offset), $matches)
+                    === 1
+                && ($matches[0] ?? null) !== null
+                && ($matches[1] ?? null) !== null
             ) {
                 // remove white space characters
                 $objval = \strtr($matches[1], "\x09\x0a\x0c\x0d\x20", '');
@@ -301,59 +303,65 @@ abstract class RawObject
     /**
      * Process default
      *
-     * @param int            $offset  Offset
-     * @param string         $objtype Object type
-     * @param RawObjectValue $objval  Object content
+     * @param-out int            $offset  Offset after processing
+     * @param-out string         $objtype Object type after processing
+     * @param-out RawObjectValue $objval  Object content after processing
      *
      * @return bool True in case of match, flase otherwise
      */
     protected function processDefaultName(int &$offset, string &$objtype, string|array &$objval): bool
     {
         $status = false;
-        if (\substr($this->pdfdata, $offset, 6) == 'endobj') {
+        if (\substr($this->pdfdata, $offset, 6) === 'endobj') {
             // indirect object
             $objtype = 'endobj';
             $offset += 6;
             $status = true;
-        } elseif (\substr($this->pdfdata, $offset, 4) == 'null') {
+        } elseif (\substr($this->pdfdata, $offset, 4) === 'null') {
             // null object
             $objtype = 'null';
             $offset += 4;
             $objval = 'null';
             $status = true;
-        } elseif (\substr($this->pdfdata, $offset, 4) == 'true') {
+        } elseif (\substr($this->pdfdata, $offset, 4) === 'true') {
             // boolean true object
             $objtype = 'boolean';
             $offset += 4;
             $objval = 'true';
             $status = true;
-        } elseif (\substr($this->pdfdata, $offset, 5) == 'false') {
+        } elseif (\substr($this->pdfdata, $offset, 5) === 'false') {
             // boolean false object
             $objtype = 'boolean';
             $offset += 5;
             $objval = 'false';
             $status = true;
-        } elseif (\substr($this->pdfdata, $offset, 6) == 'stream') {
+        } elseif (\substr($this->pdfdata, $offset, 6) === 'stream') {
             // start stream object
             $objtype = 'stream';
             $offset += 6;
-            if (\preg_match('/^([\r]?[\n])/isU', \substr($this->pdfdata, $offset), $matches) == 1) {
+            $matches = [];
+            if (
+                \preg_match('/^([\r]?[\n])/isU', \substr($this->pdfdata, $offset), $matches) === 1
+                && ($matches[0] ?? null) !== null
+            ) {
                 $offset += \strlen($matches[0]);
                 if (
                     \preg_match(
                         '/(endstream)[\x09\x0a\x0c\x0d\x20]/isU',
                         \substr($this->pdfdata, $offset),
                         $matches,
-                        PREG_OFFSET_CAPTURE
-                    ) == 1
+                        PREG_OFFSET_CAPTURE,
+                    ) === 1
+                    && ($matches[0] ?? null) !== null
+                    && ($matches[1] ?? null) !== null
                 ) {
-                    $objval = \substr($this->pdfdata, $offset, $matches[0][1]);
-                    $offset += $matches[1][1];
+                    $objval = \substr($this->pdfdata, $offset, (int) $matches[0][1]);
+                    $offset += (int) $matches[1][1];
                 }
             }
 
             $status = true;
-        } elseif (\substr($this->pdfdata, $offset, 9) == 'endstream') {
+        } elseif (\substr($this->pdfdata, $offset, 9) === 'endstream') {
             // end stream object
             $objtype = 'endstream';
             $offset += 9;
@@ -366,29 +374,28 @@ abstract class RawObject
     /**
      * Process default
      *
-     * @param int            $offset  Offset
-     * @param string         $objtype Object type
-     * @param RawObjectValue $objval  Object content
+     * @param-out int            $offset  Offset after processing
+     * @param-out string         $objtype Object type after processing
+     * @param-out RawObjectValue $objval  Object content after processing
      */
     protected function processDefault(int &$offset, string &$objtype, string|array &$objval): void
     {
+        $matches = [];
         if (
-            \preg_match(
-                '/^([0-9]+)[\s]+([0-9]+)[\s]+R/iU',
-                \substr($this->pdfdata, $offset, 33),
-                $matches
-            ) == 1
+            \preg_match('/^([0-9]+)[\s]+([0-9]+)[\s]+R/iU', \substr($this->pdfdata, $offset, 33), $matches) === 1
+            && ($matches[0] ?? null) !== null
+            && ($matches[1] ?? null) !== null
+            && ($matches[2] ?? null) !== null
         ) {
             // indirect object reference
             $objtype = 'objref';
             $offset += \strlen($matches[0]);
             $objval = (int) $matches[1] . '_' . (int) $matches[2];
         } elseif (
-            \preg_match(
-                '/^([0-9]+)[\s]+([0-9]+)[\s]+obj/iU',
-                \substr($this->pdfdata, $offset, 33),
-                $matches
-            ) == 1
+            \preg_match('/^([0-9]+)[\s]+([0-9]+)[\s]+obj/iU', \substr($this->pdfdata, $offset, 33), $matches) === 1
+            && ($matches[0] ?? null) !== null
+            && ($matches[1] ?? null) !== null
+            && ($matches[2] ?? null) !== null
         ) {
             // object start
             $objtype = 'obj';

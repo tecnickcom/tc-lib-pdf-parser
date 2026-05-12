@@ -72,6 +72,8 @@ class XrefHarness extends Xref
      *        },
      *        'xref': array<string, int>,
      *    }
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function getXrefDataPublic(int $offset = 0, array $xref = []): array
     {
@@ -100,6 +102,8 @@ class XrefHarness extends Xref
      *        },
      *        'xref': array<string, int>,
      *    }
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function decodeXrefPublic(int $startxref, array $xref): array
     {
@@ -128,6 +132,8 @@ class XrefHarness extends Xref
      *        },
      *        'xref': array<string, int>,
      *    }
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function decodeXrefStreamPublic(int $startxref, array $xref): array
     {

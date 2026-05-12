@@ -46,7 +46,7 @@ The parser is designed for tooling scenarios such as content inspection, metadat
 
 ## Requirements
 
-- PHP 8.1 or later
+- PHP 8.2 or later
 - Extension: `pcre`
 - Composer
 

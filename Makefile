@@ -92,9 +92,6 @@ COMPOSER=$(PHP) -d "apc.enable_cli=0" $(shell which composer)
 # phpDocumentor executable file
 PHPDOC=$(shell which phpDocumentor)
 
-# phpstan version
-PHPSTANVER=2.1.40
-
 # --- MAKE TARGETS ---
 
 # Display general help about this command
@@ -120,7 +117,7 @@ x: buildall
 
 ## Full build and test sequence
 .PHONY: buildall
-buildall: deps codefix qa bz2 rpm deb
+buildall: deps format qa bz2 rpm deb
 
 ## Package the library in a compressed bz2 archive
 .PHONY: bz2
@@ -133,11 +130,6 @@ bz2:
 .PHONY: clean
 clean:
 	rm -rf ./vendor $(TARGETDIR)
-
-## Fix code style violations
-.PHONY: codefix
-codefix:
-	./vendor/bin/phpcbf --ignore="\./vendor/" --standard=psr12 src test
 
 ## Build a DEB package for Debian-like Linux distributions
 .PHONY: deb
@@ -171,8 +163,7 @@ endif
 deps: ensuretarget
 	rm -rf ./vendor/*
 	($(COMPOSER) install -vvv --no-interaction)
-	curl --silent --show-error --fail --location --output ./vendor/phpstan.phar https://github.com/phpstan/phpstan/releases/download/${PHPSTANVER}/phpstan.phar \
-	&& chmod +x ./vendor/phpstan.phar
+	curl --proto '=https' --tlsv1.2 --silent --show-error --fail --location https://carthage.software/mago.sh | bash -s -- --install-dir=./vendor/bin
 
 ## Generate source code documentation
 .PHONY: doc
@@ -209,13 +200,18 @@ ifneq ($(strip $(CONFIGPATH)),)
 	find $(PATHINSTCFG) -type f -exec chmod 644 {} \;
 endif
 
-## Test source code for coding standard violations
+## Format the source code
+.PHONY: format
+format:
+	./vendor/bin/mago fmt src test
+
+## Analyze and Lint the source code
 .PHONY: lint
 lint:
-	./vendor/bin/phpcs --standard=phpcs.xml
-	./vendor/bin/phpmd src text codesize,unusedcode,naming,design --exclude */vendor/*
-	./vendor/bin/phpmd test text unusedcode,naming,design --exclude */vendor/*
-	php -r 'exit((int)version_compare(PHP_MAJOR_VERSION, "7", ">"));' || ./vendor/phpstan.phar analyse
+	./vendor/bin/mago --config ./mago.src.toml analyze src
+	./vendor/bin/mago --config ./mago.test.toml analyze test
+	./vendor/bin/mago --config ./mago.src.toml lint src
+	./vendor/bin/mago --config ./mago.test.toml lint test
 
 ## Run all tests and reports
 .PHONY: qa

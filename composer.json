@@ -1,63 +1,63 @@
 {
-  "name": "tecnickcom/tc-lib-pdf-parser",
-  "description": "PHP library to parse PDF documents",
-  "type": "library",
-  "homepage": "https://tcpdf.org",
-  "license": "LGPL-3.0-or-later",
-  "keywords": [
-    "tc-lib-pdf-parser",
-    "PDF",
-    "parser",
-    "document"
-  ],
-  "authors": [
-    {
-      "name": "Nicola Asuni",
-      "email": "info@tecnick.com",
-      "role": "lead"
+    "name": "tecnickcom/tc-lib-pdf-parser",
+    "description": "PHP library to parse PDF documents",
+    "type": "library",
+    "homepage": "https://tcpdf.org",
+    "license": "LGPL-3.0-or-later",
+    "keywords": [
+        "tc-lib-pdf-parser",
+        "PDF",
+        "parser",
+        "document"
+    ],
+    "authors": [
+        {
+            "name": "Nicola Asuni",
+            "email": "info@tecnick.com",
+            "role": "lead"
+        }
+    ],
+    "funding": [
+        {
+            "type": "github",
+            "url": "https://github.com/sponsors/tecnickcom"
+        }
+    ],
+    "require": {
+        "php": ">=8.2",
+        "ext-pcre": "*",
+        "tecnickcom/tc-lib-pdf-filter": "^2.2"
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "require-dev": {
+        "pdepend/pdepend": "^2.16",
+        "phpunit/phpunit": "^13.1 || ^12.5 || ^11.5",
+        "phpcompatibility/php-compatibility": "^10.0.0@dev"
+    },
+    "autoload": {
+        "psr-4": {
+            "Com\\Tecnick\\Pdf\\Parser\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Test\\": "test"
+        }
+    },
+    "support": {
+        "issues": "https://github.com/tecnickcom/tc-lib-pdf-parser/issues",
+        "source": "https://github.com/tecnickcom/tc-lib-pdf-parser"
+    },
+    "scripts": {
+        "test": "XDEBUG_MODE=coverage ./vendor/bin/phpunit --stderr test",
+        "cs-check": "./vendor/bin/mago --config ./mago.src.toml lint src && ./vendor/bin/mago --config ./mago.test.toml lint test",
+        "cs-fix": "./vendor/bin/mago fmt src test",
+        "analyse": "./vendor/bin/mago --config ./mago.src.toml analyze src && ./vendor/bin/mago --config ./mago.test.toml analyze test"
     }
-  ],
-  "funding": [
-    {
-      "type": "github",
-      "url": "https://github.com/sponsors/tecnickcom"
-    }
-  ],
-  "require": {
-    "php": ">=8.1",
-    "ext-pcre": "*",
-    "tecnickcom/tc-lib-pdf-filter": "^2.1"
-  },
-  "minimum-stability": "dev",
-  "prefer-stable": true,
-  "config": {
-    "allow-plugins": {
-      "dealerdirect/phpcodesniffer-composer-installer": true
-    }
-  },
-  "require-dev": {
-    "pdepend/pdepend": "^2.16",
-    "phpmd/phpmd": "^2.15",
-    "phpunit/phpunit": "^13.1 || ^12.5 || ^11.5 || ^10.5",
-    "squizlabs/php_codesniffer": "^4.0",
-    "phpcompatibility/php-compatibility": "^10.0.0@dev"
-  },
-  "autoload": {
-    "psr-4": {
-      "Com\\Tecnick\\Pdf\\Parser\\": "src"
-    }
-  },
-  "autoload-dev": {
-    "psr-4": { "Test\\": "test" }
-  },
-  "support": {
-    "issues": "https://github.com/tecnickcom/tc-lib-pdf-parser/issues",
-    "source": "https://github.com/tecnickcom/tc-lib-pdf-parser"
-  },
-  "scripts": {
-    "test": "XDEBUG_MODE=coverage ./vendor/bin/phpunit --stderr test",
-    "cs-check": "./vendor/bin/phpcs --standard=phpcs.xml",
-    "cs-fix": "./vendor/bin/phpcbf --ignore=\"./vendor/\" --standard=psr12 src test",
-    "analyse": "./vendor/phpstan.phar analyse"
-  }
 }

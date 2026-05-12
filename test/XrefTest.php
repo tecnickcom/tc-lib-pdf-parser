@@ -43,28 +43,43 @@ class XrefTest extends TestCase
         $parser->processObjIndexesPublic($xref, $obj_num, $sdata);
 
         $this->assertSame(6, $obj_num);
-        $this->assertSame(42, $xref['xref']['3_0']);
-        $this->assertSame(-1, $xref['xref']['7_0_4']);
+        $this->assertSame(42, $xref['xref']['3_0'] ?? null);
+        $this->assertSame(-1, $xref['xref']['7_0_4'] ?? null);
     }
 
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
     public function testPngUnpredictorDecodesAndRejectsUnknownPredictor(): void
     {
         $parser = new XrefStreamHarness();
 
         $decoded = [];
         $parser->pngUnpredictorPublic([[0, 10]], $decoded, 1, [0]);
+        if (!isset($decoded[0][0])) {
+            $this->fail('Decoded first row value is missing.');
+        }
         $this->assertSame(10, $decoded[0][0]);
 
         $decoded = [];
         $parser->pngUnpredictorPublic([[1, 5]], $decoded, 1, [0]);
+        if (!isset($decoded[0][0])) {
+            $this->fail('Decoded first row value is missing.');
+        }
         $this->assertSame(5, $decoded[0][0]);
 
         $decoded = [];
         $parser->pngUnpredictorPublic([[2, 3]], $decoded, 1, [4]);
+        if (!isset($decoded[0][0])) {
+            $this->fail('Decoded first row value is missing.');
+        }
         $this->assertSame(7, $decoded[0][0]);
 
         $decoded = [];
         $parser->pngUnpredictorPublic([[4, 8]], $decoded, 1, [1]);
+        if (!isset($decoded[0][0])) {
+            $this->fail('Decoded first row value is missing.');
+        }
         $this->assertSame(9, $decoded[0][0]);
 
         $this->expectException(PPException::class);
@@ -73,6 +88,9 @@ class XrefTest extends TestCase
         $parser->pngUnpredictorPublic([[9, 1]], $decoded, 1, [0]);
     }
 
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
     public function testDecodeXrefParsesEntriesAndTrailer(): void
     {
         $pdf =
@@ -86,13 +104,16 @@ class XrefTest extends TestCase
         $parser->setPdfDataPublic($pdf);
         $xref = $parser->decodeXrefPublic(0, ['xref' => []]);
 
-        $this->assertSame(17, $xref['xref']['1_0']);
+        $this->assertSame(17, $xref['xref']['1_0'] ?? null);
         $this->assertSame(2, $xref['trailer']['size']);
         $this->assertSame('1_0', $xref['trailer']['root']);
         $this->assertSame('2_0', $xref['trailer']['info']);
         $this->assertSame(['AA', 'BB'], $xref['trailer']['id']);
     }
 
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
     public function testDecodeXrefStreamParsesRowsAndTrailer(): void
     {
         $stream_data = \pack('C*', 0, 1, 10, 0, 0, 2, 5, 1);
@@ -125,8 +146,8 @@ class XrefTest extends TestCase
 
         $xref = $parser->decodeXrefStreamPublic(100, ['xref' => []]);
 
-        $this->assertSame(10, $xref['xref']['0_0']);
-        $this->assertSame(-1, $xref['xref']['5_0_1']);
+        $this->assertSame(10, $xref['xref']['0_0'] ?? null);
+        $this->assertSame(-1, $xref['xref']['5_0_1'] ?? null);
         $this->assertSame('1_0', $xref['trailer']['root']);
         $this->assertSame(2, $xref['trailer']['size']);
         $this->assertSame(['AA', 'BB'], $xref['trailer']['id']);
@@ -138,9 +159,12 @@ class XrefTest extends TestCase
         $sdata = [];
         $parser->processDdataPublic($sdata, [[9, 3]], [0, 1, 1]);
 
-        $this->assertSame([1, 9, 3], $sdata[0]);
+        $this->assertSame([1, 9, 3], $sdata[0] ?? null);
     }
 
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
     public function testGetXrefDataThrowsWhenStartxrefIsMissing(): void
     {
         $parser = new XrefHarness();

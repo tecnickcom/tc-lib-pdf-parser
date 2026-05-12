@@ -42,6 +42,8 @@ class XrefStreamHarness extends XrefStream
      * @param array<int, array<int, int>> $sdata
      * @param array<int, array<int, int>> $ddata
      * @param array<int, int>             $prev_row
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function pngUnpredictorPublic(array $sdata, array &$ddata, int $columns, array $prev_row): void
     {

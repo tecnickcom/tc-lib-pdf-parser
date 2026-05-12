@@ -133,6 +133,8 @@ class ParserHarness extends Parser
      * @param RawObjectArray $obj
      *
      * @return RawObjectArray
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function getObjectValPublic(array $obj): array
     {
@@ -144,6 +146,8 @@ class ParserHarness extends Parser
      * @param array<int, RawObjectArray> $sdic
      *
      * @return array<string>
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function getFiltersPublic(array $filters, array $sdic, int $key): array
     {
@@ -154,6 +158,8 @@ class ParserHarness extends Parser
      * @param array<int, RawObjectArray> $sdic
      *
      * @return array<string, mixed>
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function getDecodeParmsPublic(array $sdic, int $key): array
     {
@@ -165,6 +171,8 @@ class ParserHarness extends Parser
      * @param array<string, mixed> $params
      *
      * @return array{0:string,1:array<string>}
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function getDecodedStreamPublic(array $filters, string $stream, array $params = []): array
     {
@@ -173,6 +181,8 @@ class ParserHarness extends Parser
 
     /**
      * @return array<int, RawObjectArray>
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function getRawIndirectObjectPublic(int $offset, bool $decoding): array
     {
@@ -181,6 +191,8 @@ class ParserHarness extends Parser
 
     /**
      * @return array<int, RawObjectArray>
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function callParentGetIndirectObject(string $obj_ref, int $offset = 0, bool $decoding = true): array
     {
@@ -224,7 +236,7 @@ class ParserHarness extends Parser
     }
 
     /**
-        * @return array<int, RawObjectArray>
+     * @return array<int, RawObjectArray>
      */
     protected function getIndirectObject(string $obj_ref, int $offset = 0, bool $decoding = true): array
     {
@@ -238,7 +250,7 @@ class ParserHarness extends Parser
     }
 
     /**
-        * @return RawObjectArray
+     * @return RawObjectArray
      */
     protected function getRawObject(int $offset = 0): array
     {
@@ -246,11 +258,6 @@ class ParserHarness extends Parser
             return ['endobj', 'endobj', $offset];
         }
 
-        $obj = \array_shift($this->rawObjectQueue);
-        if ($obj === null) {
-            return ['endobj', 'endobj', $offset];
-        }
-
-        return $obj;
+        return \array_shift($this->rawObjectQueue);
     }
 }
