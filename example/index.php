@@ -1,4 +1,5 @@
 <?php
+
 /**
  * index.php
  *
@@ -14,7 +15,7 @@
  */
 
 // autoloader when using Composer
-require(__DIR__ . '/../vendor/autoload.php');
+require __DIR__ . '/../vendor/autoload.php';
 
 // autoloader when using RPM or DEB package installation
 //require ('/usr/share/php/Com/Tecnick/Pdf/Parser/autoload.php');

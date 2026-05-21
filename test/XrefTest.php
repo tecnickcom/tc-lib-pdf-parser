@@ -98,7 +98,7 @@ class XrefTest extends TestCase
             . "0 2\r\n"
             . "0000000000 65535 f\r\n"
             . "0000000017 00000 n\r\n"
-            . "trailer << /Size 2 /Root 1 0 R /Info 2 0 R /ID [<AA><BB>] >>\r\n";
+            . "trailer << /Size 2 /Root 1 0 R /Info 2 0 R /Encrypt 3 0 R /ID [<AA><BB>] >>\r\n";
 
         $parser = new XrefHarness();
         $parser->setPdfDataPublic($pdf);
@@ -108,6 +108,7 @@ class XrefTest extends TestCase
         $this->assertSame(2, $xref['trailer']['size']);
         $this->assertSame('1_0', $xref['trailer']['root']);
         $this->assertSame('2_0', $xref['trailer']['info']);
+        $this->assertSame('3_0', $xref['trailer']['encrypt'] ?? null);
         $this->assertSame(['AA', 'BB'], $xref['trailer']['id']);
     }
 
@@ -173,5 +174,328 @@ class XrefTest extends TestCase
         $this->expectException(PPException::class);
         $this->expectExceptionMessage('Unable to find startxref (1)');
         $parser->getXrefDataPublic();
+    }
+
+    public function testProcessObjIndexesIgnoresUnknownEntryTypes(): void
+    {
+        $xref = [
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '',
+                'size' => 0,
+            ],
+            'xref' => [],
+        ];
+        $obj_num = 9;
+
+        $parser = new XrefStreamHarness();
+        $parser->processObjIndexesPublic($xref, $obj_num, [[9, 1, 2]]);
+
+        $this->assertSame(10, $obj_num);
+        $this->assertSame([], $xref['xref']);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testPngUnpredictorCoversAveragePredictor(): void
+    {
+        $parser = new XrefStreamHarness();
+        $decoded = [];
+
+        $parser->pngUnpredictorPublic([[3, 4]], $decoded, 1, [2]);
+
+        if (!isset($decoded[0][0])) {
+            $this->fail('Decoded first row value is missing.');
+        }
+
+        $this->assertSame(5, $decoded[0][0]);
+    }
+
+    public function testMinDistanceCoversAllOutcomeBranches(): void
+    {
+        $parser = new XrefStreamHarness();
+        $ddata = [[0]];
+
+        $parser->minDistancePublic($ddata, 0, 5, 0, [7, 2, 0]);
+        $this->assertSame(12, $ddata[0][0] ?? null);
+
+        $parser->minDistancePublic($ddata, 0, 5, 0, [10, 3, 9]);
+        $this->assertSame(8, $ddata[0][0] ?? null);
+
+        $parser->minDistancePublic($ddata, 0, 5, 0, [0, 10, 4]);
+        $this->assertSame(9, $ddata[0][0] ?? null);
+    }
+
+    public function testProcessXrefPrevAndDecodeParmsHandleInvalidInput(): void
+    {
+        $parser = new XrefStreamHarness();
+
+        $prevxref = null;
+        $parser->processXrefPrevPublic(['name', 'x', 0], $prevxref);
+        $this->assertNull($prevxref);
+
+        $parser->processXrefPrevPublic(['numeric', '17', 0], $prevxref);
+        $this->assertSame(17, $prevxref);
+
+        $columns = 9;
+        $parser->processXrefDecodeParmsPublic(['name', 'x', 0], $columns);
+        $this->assertSame(9, $columns);
+
+        $parser->processXrefDecodeParmsPublic(['<<', [['/', 'Columns', 0], ['numeric', '-5', 0]], 0], $columns);
+        $this->assertSame(0, $columns);
+    }
+
+    public function testProcessXrefTypeFtAndObjrefCoverTrailerBranches(): void
+    {
+        $parser = new XrefStreamHarness();
+        $xref = [
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '',
+                'size' => 0,
+            ],
+            'xref' => [],
+        ];
+
+        $sarr = [
+            ['/', 'Root', 0],
+            ['objref', '1_0', 0],
+            ['/', 'Info', 0],
+            ['objref', '2_0', 0],
+            ['/', 'Encrypt', 0],
+            ['objref', '3_0', 0],
+            ['/', 'Size', 0],
+            ['numeric', '4', 0],
+            ['/', 'ID', 0],
+            ['[', [['hex', 'AA', 0], ['hex', 'BB', 0]], 0],
+            ['/', 'ID', 0],
+            ['[', [['hex', '', 0], ['hex', 'BB', 0]], 0],
+        ];
+
+        $parser->processXrefTypeFtPublic('Root', $sarr, 0, $xref, true);
+        $parser->processXrefTypeFtPublic('Info', $sarr, 2, $xref, true);
+        $parser->processXrefTypeFtPublic('Encrypt', $sarr, 4, $xref, true);
+        $parser->processXrefTypeFtPublic('Size', $sarr, 6, $xref, true);
+        $parser->processXrefTypeFtPublic('ID', $sarr, 8, $xref, true);
+        $parser->processXrefTypeFtPublic('ID', $sarr, 10, $xref, true);
+
+        $this->assertSame('1_0', $xref['trailer']['root']);
+        $this->assertSame('2_0', $xref['trailer']['info']);
+        $this->assertSame('3_0', $xref['trailer']['encrypt'] ?? null);
+        $this->assertSame(4, $xref['trailer']['size']);
+        $this->assertSame(['AA', 'BB'], $xref['trailer']['id']);
+
+        $before = $xref;
+        $parser->processXrefTypeFtPublic('Size', $sarr, 6, $xref, false);
+        $this->assertSame($before, $xref);
+
+        $objref = $parser->processXrefObjrefPublic('Root', [['/', 'Root', 0], ['name', 'x', 0]], 0, $xref);
+        $this->assertSame($xref, $objref);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefThrowsWhenTrailerIsMissing(): void
+    {
+        $parser = new XrefHarness();
+        $parser->setPdfDataPublic("xref\r\n0 1\r\n0000000000 65535 f\r\n");
+
+        $this->expectException(PPException::class);
+        $this->expectExceptionMessage('Unable to find trailer');
+        $parser->decodeXrefPublic(0, ['xref' => []]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetXrefDataDetectsRepeatedOffsetLoop(): void
+    {
+        $parser = new XrefHarness();
+        $parser->setPdfDataPublic("%PDF-1.7\ninvalid\n");
+
+        try {
+            $parser->getXrefDataPublic(5, ['xref' => []]);
+        } catch (PPException $exception) {
+            $this->assertContains($exception->getMessage(), [
+                'Unable to find startxref (3)',
+                'Unable to find xref (4)',
+            ]);
+        }
+
+        $this->expectException(PPException::class);
+        $this->expectExceptionMessage('LOOP: this XRef offset has been already processed');
+        $parser->getXrefDataPublic(5, ['xref' => []]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetXrefDataFindsObjectStreamStartxrefFromOffset(): void
+    {
+        $stream_data = \pack('C*', 0, 1, 9, 0);
+
+        $parser = new XrefHarness();
+        $parser->setPdfDataPublic('AAAAA12 0 obj .... xref');
+        $parser->setStubRawObject(['objref', '12_0', 0]);
+        $parser->setStubIndirectObject([
+            [
+                '<<',
+                [
+                    ['/', 'Type', 0],
+                    ['/', 'XRef', 0],
+                    ['/', 'W', 0],
+                    ['[', [['numeric', '1', 0], ['numeric', '1', 0], ['numeric', '1', 0]], 0],
+                    ['/', 'Index', 0],
+                    ['[', [['numeric', '0', 0], ['numeric', '1', 0]], 0],
+                    ['/', 'Size', 0],
+                    ['numeric', '1', 0],
+                    ['/', 'DecodeParms', 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '3', 0]], 0],
+                ],
+                0,
+            ],
+            ['stream', $stream_data, 0, [$stream_data, []]],
+        ]);
+
+        $xref = $parser->getXrefDataPublic(5, ['xref' => []]);
+
+        $this->assertSame(9, $xref['xref']['0_0'] ?? null);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetXrefDataFindsStartxrefMarkerWhenOffsetIsNonZero(): void
+    {
+        $body = 'xxxxxxxxxxxxxxxxxxxx';
+        $pdf =
+            $body
+            . "xref\r\n"
+            . "0 1\r\n"
+            . "0000000001 00000 n\r\n"
+            . "trailer << /Size 1 >>\r\n"
+            . "startxref\n20\n%%EOF";
+
+        $parser = new XrefHarness();
+        $parser->setPdfDataPublic($pdf);
+
+        $start = (int) \strpos($pdf, 'startxref');
+        $xref = $parser->getXrefDataPublic($start - 1, ['xref' => []]);
+
+        $this->assertSame(1, $xref['xref']['0_0'] ?? null);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefCallsGetXrefDataWhenTrailerContainsPrev(): void
+    {
+        $parser = new class() extends XrefHarness {
+            public int $capturedOffset = -1;
+
+            protected function getXrefData(int $offset = 0, array $xref = []): array
+            {
+                $this->capturedOffset = $offset;
+                $xref['xref']['prev_0'] = $offset;
+
+                return [
+                    'trailer' => $xref['trailer'] ?? ['id' => [], 'info' => '', 'root' => '', 'size' => 0],
+                    'xref' => $xref['xref'],
+                ];
+            }
+        };
+
+        $parser->setPdfDataPublic(
+            "xref\r\n" . "0 1\r\n" . "0000000001 00000 n\r\n" . "trailer << /Size 1 /Prev 11 >>\r\n",
+        );
+
+        $xref = $parser->decodeXrefPublic(0, ['xref' => []]);
+
+        $this->assertSame(11, $parser->capturedOffset);
+        $this->assertSame(11, $xref['xref']['prev_0'] ?? null);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefStreamThrowsWhenRawObjectValueIsNotString(): void
+    {
+        $parser = new XrefHarness();
+        $parser->setStubRawObject(['numeric', [], 0]);
+
+        $this->expectException(PPException::class);
+        $this->expectExceptionMessage('Unable to find xref stream');
+        $parser->decodeXrefStreamPublic(0, ['xref' => []]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefStreamHandlesNonArrayDictionaryPayload(): void
+    {
+        $stream_data = \pack('C*', 0, 1, 9, 0);
+
+        $parser = new XrefHarness();
+        $parser->setStubRawObject(['objref', '1_0', 0]);
+        $parser->setStubIndirectObject([
+            ['<<', 'not-array', 0],
+            ['stream', $stream_data, 0, [$stream_data, []]],
+        ]);
+
+        $xref = $parser->decodeXrefStreamPublic(0, ['xref' => ['9_0' => 99]]);
+        $this->assertSame(99, $xref['xref']['9_0'] ?? null);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefStreamCallsGetXrefDataWhenPrevIsPresent(): void
+    {
+        $stream_data = \pack('C*', 0, 1, 9, 0);
+
+        $parser = new class() extends XrefHarness {
+            public int $capturedOffset = -1;
+
+            protected function getXrefData(int $offset = 0, array $xref = []): array
+            {
+                $this->capturedOffset = $offset;
+                $xref['xref']['prev_0'] = $offset;
+
+                return [
+                    'trailer' => $xref['trailer'] ?? ['id' => [], 'info' => '', 'root' => '', 'size' => 0],
+                    'xref' => $xref['xref'],
+                ];
+            }
+        };
+
+        $parser->setStubRawObject(['objref', '1_0', 0]);
+        $parser->setStubIndirectObject([
+            [
+                '<<',
+                [
+                    ['/', 'Type', 0],
+                    ['/', 'XRef', 0],
+                    ['/', 'W', 0],
+                    ['[', [['numeric', '1', 0], ['numeric', '1', 0], ['numeric', '1', 0]], 0],
+                    ['/', 'Index', 0],
+                    ['[', [['numeric', '0', 0], ['numeric', '1', 0]], 0],
+                    ['/', 'Size', 0],
+                    ['numeric', '1', 0],
+                    ['/', 'Prev', 0],
+                    ['numeric', '77', 0],
+                ],
+                0,
+            ],
+            ['stream', $stream_data, 0, [$stream_data, []]],
+        ]);
+
+        $xref = $parser->decodeXrefStreamPublic(0, ['xref' => []]);
+
+        $this->assertSame(77, $parser->capturedOffset);
+        $this->assertSame(77, $xref['xref']['prev_0'] ?? null);
     }
 }

@@ -18,6 +18,9 @@ namespace Test;
 
 use Com\Tecnick\Pdf\Parser\Process\XrefStream;
 
+/**
+ * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
+ */
 class XrefStreamHarness extends XrefStream
 {
     /**
@@ -48,5 +51,55 @@ class XrefStreamHarness extends XrefStream
     public function pngUnpredictorPublic(array $sdata, array &$ddata, int $columns, array $prev_row): void
     {
         $this->pngUnpredictor($sdata, $ddata, $columns, $prev_row);
+    }
+
+    /**
+     * @param array<int, array<int, int>> $ddata
+     * @param array{0:int, 1:int, 2:int}  $rows
+     */
+    public function minDistancePublic(array &$ddata, int $key, int $row_value, int $jdx, array $rows): void
+    {
+        $this->minDistance($ddata, $key, $row_value, $jdx, $rows);
+    }
+
+    /** @param RawObjectArray|null $next */
+    public function processXrefPrevPublic(?array $next, ?int &$prevxref): void
+    {
+        $this->processXrefPrev($next, $prevxref);
+    }
+
+    /** @param RawObjectArray|null $next */
+    public function processXrefDecodeParmsPublic(?array $next, int &$columns): void
+    {
+        $this->processXrefDecodeParms($next, $columns);
+    }
+
+    /**
+     * @param array<int, RawObjectArray> $sarr
+     * @param array{
+     *        trailer: array{encrypt?: string, id: array<int, string>, info: string, root: string, size: int},
+     *        xref: array<string, int>,
+     *    } $xref
+     */
+    public function processXrefTypeFtPublic(string $type, array $sarr, int $key, array &$xref, bool $filltrailer): void
+    {
+        $this->processXrefTypeFt($type, $sarr, $key, $xref, $filltrailer);
+    }
+
+    /**
+     * @param array<int, RawObjectArray> $sarr
+     * @param array{
+     *        trailer: array{encrypt?: string, id: array<int, string>, info: string, root: string, size: int},
+     *        xref: array<string, int>,
+     *    } $xref
+     *
+     * @return array{
+     *        trailer: array{encrypt?: string, id: array<int, string>, info: string, root: string, size: int},
+     *        xref: array<string, int>,
+     *    }
+     */
+    public function processXrefObjrefPublic(string $type, array $sarr, int $key, array $xref): array
+    {
+        return $this->processXrefObjref($type, $sarr, $key, $xref);
     }
 }

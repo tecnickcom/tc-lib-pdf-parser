@@ -97,12 +97,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
      * @param int    $offset   Object offset.
      * @param bool   $decoding If true decode streams.
      *
-     * @return array< int, array{
-     *        0: string,
-     *        1: string,
-     *        2: int,
-     *        3?: array{string, array<string>},
-     *    }> Object data.
+     * @return array<int, RawObjectArray> Object data.
      */
     abstract protected function getIndirectObject(string $obj_ref, int $offset = 0, bool $decoding = true): array;
 

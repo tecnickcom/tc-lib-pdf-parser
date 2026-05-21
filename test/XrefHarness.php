@@ -23,10 +23,10 @@ use Com\Tecnick\Pdf\Parser\Process\Xref;
  */
 class XrefHarness extends Xref
 {
-    /** @var array<int, array{0:string,1:string|array<int, mixed>,2:int,3?:array{string, array<string>}}> */
+    /** @var array<int, RawObjectArray> */
     private array $stubIndirectObject = [];
 
-    /** @var array{0:string,1:string|array<int, mixed>,2:int,3?:array{string, array<string>}}|null */
+    /** @var RawObjectArray|null */
     private ?array $stubRawObject = null;
 
     public function setPdfDataPublic(string $pdfdata): void
@@ -43,7 +43,7 @@ class XrefHarness extends Xref
     }
 
     /**
-     * @param array{0:string,1:string|array<int, mixed>,2:int,3?:array{string, array<string>}} $rawObject
+     * @param RawObjectArray $rawObject
      */
     public function setStubRawObject(array $rawObject): void
     {
@@ -151,7 +151,7 @@ class XrefHarness extends Xref
     }
 
     /**
-     * @return array<int, array{0:string,1:string|array<int, mixed>,2:int,3?:array{string, array<string>}}>
+     * @return array<int, RawObjectArray>
      */
     protected function getIndirectObject(string $obj_ref, int $offset = 0, bool $decoding = true): array
     {
@@ -162,7 +162,7 @@ class XrefHarness extends Xref
     }
 
     /**
-     * @return array{0:string,1:string|array<int, mixed>,2:int,3?:array{string, array<string>}}
+     * @return RawObjectArray
      */
     protected function getRawObject(int $offset = 0): array
     {

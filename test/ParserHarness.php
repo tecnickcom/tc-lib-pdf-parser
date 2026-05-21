@@ -180,6 +180,18 @@ class ParserHarness extends Parser
     }
 
     /**
+     * @param array<int, RawObjectArray> $sdic
+     *
+     * @return array{0:string,1:array<string>}
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function decodeStreamPublic(array $sdic, string $stream): array
+    {
+        return $this->decodeStream($sdic, $stream);
+    }
+
+    /**
      * @return array<int, RawObjectArray>
      *
      * @throws \Com\Tecnick\Pdf\Parser\Exception

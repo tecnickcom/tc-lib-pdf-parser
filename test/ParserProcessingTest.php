@@ -208,4 +208,199 @@ class ParserProcessingTest extends TestCase
         $this->expectException(PPException::class);
         $parser->getDecodedStreamPublic(['UnknownFilter'], 'sample-data');
     }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testParentIndirectObjectFindsObjectAfterOffsetShift(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setPdfDataPublic("%PDF-1.7\nX1 0 obj\nendobj\n");
+        $parser->setRawObjectQueue([
+            ['numeric', '7',      16],
+            ['endobj',  'endobj', 22],
+        ]);
+
+        $obj = $parser->callParentGetIndirectObject('1_0', 9, true);
+
+        $this->assertSame([['numeric', '7', 16]], $obj);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetFiltersHandlesMissingAndInvalidArrayPayload(): void
+    {
+        $parser = new ParserHarness();
+
+        $filters = ['FlateDecode'];
+        $this->assertSame($filters, $parser->getFiltersPublic($filters, [['/', 'Filter', 0]], 0));
+
+        $invalid = [
+            ['/', 'Filter', 0],
+            ['[', 'invalid', 0],
+        ];
+        $this->assertSame([], $parser->getFiltersPublic([], $invalid, 0));
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetDecodeParmsHandlesDictionaryArrayAndMissingValues(): void
+    {
+        $parser = new ParserHarness();
+
+        $this->assertSame([], $parser->getDecodeParmsPublic([['/', 'DecodeParms', 0]], 0));
+
+        $dict = [
+            ['/', 'DecodeParms', 0],
+            [
+                '<<',
+                [
+                    ['/', 'Columns', 0],
+                    ['numeric', '5', 0],
+                    ['/', 'EarlyChange', 0],
+                    ['true', 'true', 0],
+                    ['/', 'FilterName', 0],
+                    ['/', 'FlateDecode', 0],
+                    ['/', 'Text', 0],
+                    ['string', 'abc', 0],
+                    ['/', 'Ignored', 0],
+                    ['[', [], 0],
+                ],
+                0,
+            ],
+        ];
+
+        $this->assertSame(
+            [
+                'Columns' => 5,
+                'EarlyChange' => true,
+                'FilterName' => 'FlateDecode',
+                'Text' => 'abc',
+            ],
+            $parser->getDecodeParmsPublic($dict, 0),
+        );
+
+        $array = [
+            ['/', 'DecodeParms', 0],
+            [
+                '[',
+                [
+                    ['null', 'null', 0],
+                    [
+                        '<<',
+                        [
+                            ['/', 'Rows', 0],
+                            ['numeric', '2', 0],
+                            ['/', 'Enabled', 0],
+                            ['false', 'false', 0],
+                        ],
+                        0,
+                    ],
+                ],
+                0,
+            ],
+        ];
+
+        $this->assertSame(
+            [
+                'Rows' => 2,
+                'Enabled' => false,
+            ],
+            $parser->getDecodeParmsPublic($array, 0),
+        );
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeStreamHandlesEmptyStreamAndDecodeParmsExtraction(): void
+    {
+        $parser = new ParserHarness(['ignore_filter_errors' => true]);
+
+        $this->assertSame(['', []], $parser->decodeStreamPublic([], ''));
+
+        $sdic = [
+            ['/', 'Filter', 0],
+            ['/', 'UnknownFilter', 0],
+            ['/', 'DecodeParms', 0],
+            [
+                '<<',
+                [
+                    ['/', 'Columns', 0],
+                    ['numeric', '3', 0],
+                    ['/', 'Predictor', 0],
+                    ['numeric', '12', 0],
+                ],
+                0,
+            ],
+        ];
+
+        $result = $parser->decodeStreamPublic($sdic, 'abc');
+        $this->assertSame('abc', $result[0]);
+        $this->assertSame(['UnknownFilter'], $result[1]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testParentIndirectObjectReturnsNullObjectWhenSearchMissesTwice(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setPdfDataPublic("%PDF-1.7\nno objects\n");
+
+        $obj = $parser->callParentGetIndirectObject('1_0', 2, true);
+
+        $this->assertSame([['null', 'null', 3]], $obj);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetFiltersSkipsSlashEntriesWithNonStringNames(): void
+    {
+        $parser = new ParserHarness();
+        $sdic = [
+            ['/', 'Filter', 0],
+            [
+                '[',
+                [
+                    ['/', [['numeric', '1', 0]], 0],
+                    ['/', 'FlateDecode', 0],
+                ],
+                0,
+            ],
+        ];
+
+        $filters = $parser->getFiltersPublic([], $sdic, 0);
+        $this->assertSame(['FlateDecode'], $filters);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetDecodeParmsSkipsInvalidPairsAcrossLoopChecks(): void
+    {
+        $parser = new ParserHarness();
+        $sdic = [
+            ['/', 'DecodeParms', 0],
+            [
+                '<<',
+                [
+                    ['numeric', '0',            0],
+                    ['numeric', '1',            0],
+                    ['/',       'MissingValue', 0],
+                    ['null',    'null',         0],
+                    ['/',       'Valid',        0],
+                    ['numeric', '7',            0],
+                    ['/',       'DanglingKey',  0],
+                ],
+                0,
+            ],
+        ];
+
+        $params = $parser->getDecodeParmsPublic($sdic, 0);
+        $this->assertSame(['Valid' => 7], $params);
+    }
 }
