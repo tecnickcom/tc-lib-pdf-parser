@@ -377,7 +377,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
             // initialize first row with zeros
             $filllen = \max(0, $rowlen);
             $prev_row = \array_fill(0, $filllen, 0);
-            $this->pngUnpredictor($sdata, $ddata, $columns, $prev_row); //@phpstan-ignore argument.type
+            $this->pngUnpredictor($sdata, $ddata, $columns, $prev_row);
             // complete decoding
             $sdata = [];
             $this->processDdata($sdata, $ddata, $wbt);

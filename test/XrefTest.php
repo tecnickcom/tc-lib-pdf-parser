@@ -409,9 +409,7 @@ class XrefTest extends TestCase
             }
         };
 
-        $parser->setPdfDataPublic(
-            "xref\r\n" . "0 1\r\n" . "0000000001 00000 n\r\n" . "trailer << /Size 1 /Prev 11 >>\r\n",
-        );
+        $parser->setPdfDataPublic("xref\r\n0 1\r\n0000000001 00000 n\r\ntrailer << /Size 1 /Prev 11 >>\r\n");
 
         $xref = $parser->decodeXrefPublic(0, ['xref' => []]);
 

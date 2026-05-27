@@ -242,19 +242,12 @@ abstract class RawObject
                 $oldoffset = $offset;
                 $element = $this->getRawObject($offset);
                 $offset = $element[2];
-                $objval[] = $element; // @phpstan-ignore parameterByRef.type
-                // Bail out if getRawObject failed to advance $offset (a byte
-                // processDefault() could not consume): without this guard the
-                // loop spins forever on the same offset and exhausts PHP memory.
-                // Mirrors the existing guard in Parser::getRawIndirectObject().
-                if ((int) $offset === (int) $oldoffset) {
-                    break;
-                }
-            } while ($element[0] !== ']');
+                $objval[] = $element;
+            } while ($element[0] !== ']' && (int) $offset !== (int) $oldoffset);
 
             if (\count($objval) > 0) {
                 // remove closing delimiter
-                \array_pop($objval); // @phpstan-ignore parameterByRef.type
+                \array_pop($objval);
             }
         }
     }
@@ -280,19 +273,12 @@ abstract class RawObject
                     $oldoffset = $offset;
                     $element = $this->getRawObject($offset);
                     $offset = $element[2];
-                    $objval[] = $element; // @phpstan-ignore parameterByRef.type
-                    // Bail out if getRawObject failed to advance $offset (a byte
-                    // processDefault() could not consume): without this guard the
-                    // loop spins forever on the same offset and exhausts PHP memory.
-                    // Mirrors the existing guard in Parser::getRawIndirectObject().
-                    if ((int) $offset === (int) $oldoffset) {
-                        break;
-                    }
-                } while ($element[0] !== '>>');
+                    $objval[] = $element;
+                } while ($element[0] !== '>>' && (int) $offset !== (int) $oldoffset);
 
                 if (\count($objval) > 0) {
                     // remove closing delimiter
-                    \array_pop($objval); // @phpstan-ignore parameterByRef.type
+                    \array_pop($objval);
                 }
             }
         } else {
