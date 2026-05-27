@@ -403,4 +403,49 @@ class ParserProcessingTest extends TestCase
         $params = $parser->getDecodeParmsPublic($sdic, 0);
         $this->assertSame(['Valid' => 7], $params);
     }
+
+    /**
+     * Regression: processAngular() must bail out when getRawObject() fails
+     * to advance $offset, rather than spinning forever and exhausting PHP
+     * memory. Without the guard, the inner do-while loop accumulates
+     * identical zero-length tokens at the same offset until OOM.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testProcessAngularBailsOnNonAdvancingByte(): void
+    {
+        // `<<` then `~` — a byte that processDefault() cannot consume — and
+        // no `>>` terminator. Before the fix this hangs / OOMs in
+        // RawObject::processAngular() at the inner do-while loop.
+        $parser = new ParserHarness();
+        $parser->setPdfDataPublic('<<~');
+
+        $element = $parser->callParentGetRawObject(0);
+
+        $this->assertIsArray($element);
+        $this->assertSame('<<', $element[0]);
+        $this->assertIsArray($element[1]);
+        // The non-advancing guard must short-circuit within a single
+        // iteration; the trailing array_pop then leaves $objval empty.
+        $this->assertLessThan(5, \count($element[1]));
+    }
+
+    /**
+     * Regression: processBracket() must bail out on a non-advancing parse,
+     * for the same reasons as the dictionary loop above.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testProcessBracketBailsOnNonAdvancingByte(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setPdfDataPublic('[~');
+
+        $element = $parser->callParentGetRawObject(0);
+
+        $this->assertIsArray($element);
+        $this->assertSame('[', $element[0]);
+        $this->assertIsArray($element[1]);
+        $this->assertLessThan(5, \count($element[1]));
+    }
 }

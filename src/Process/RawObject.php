@@ -239,9 +239,17 @@ abstract class RawObject
             // get array content
             $objval = [];
             do {
+                $oldoffset = $offset;
                 $element = $this->getRawObject($offset);
                 $offset = $element[2];
                 $objval[] = $element; // @phpstan-ignore parameterByRef.type
+                // Bail out if getRawObject failed to advance $offset (a byte
+                // processDefault() could not consume): without this guard the
+                // loop spins forever on the same offset and exhausts PHP memory.
+                // Mirrors the existing guard in Parser::getRawIndirectObject().
+                if ((int) $offset === (int) $oldoffset) {
+                    break;
+                }
             } while ($element[0] !== ']');
 
             if (\count($objval) > 0) {
@@ -269,9 +277,17 @@ abstract class RawObject
                 // get array content
                 $objval = [];
                 do {
+                    $oldoffset = $offset;
                     $element = $this->getRawObject($offset);
                     $offset = $element[2];
                     $objval[] = $element; // @phpstan-ignore parameterByRef.type
+                    // Bail out if getRawObject failed to advance $offset (a byte
+                    // processDefault() could not consume): without this guard the
+                    // loop spins forever on the same offset and exhausts PHP memory.
+                    // Mirrors the existing guard in Parser::getRawIndirectObject().
+                    if ((int) $offset === (int) $oldoffset) {
+                        break;
+                    }
                 } while ($element[0] !== '>>');
 
                 if (\count($objval) > 0) {
