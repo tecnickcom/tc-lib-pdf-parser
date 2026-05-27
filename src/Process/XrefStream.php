@@ -53,42 +53,100 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     /**
      * Process object indexes
      *
-     * @param XrefData                   $xref    XREF data
-     * @param int                        $obj_num Object number
+     * @param XrefData                    $xref    XREF data
+     * @param int                         $obj_num Object number
      * @param array<int, array<int, int>> $sdata   Stream data
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     protected function processObjIndexes(array &$xref, int &$obj_num, array $sdata): void
     {
         foreach ($sdata as $sdatum) {
-            $entryType = (int) ($sdatum[0] ?? 0);
-            switch ($entryType) {
-                case 0:
-                    // (f) linked list of free objects
-                    break;
-                case 1:
-                    // (n) objects that are in use but are not compressed
-                    // create unique object index: [object number]_[generation number]
-                    $index = $obj_num . '_' . (int) ($sdatum[2] ?? 0);
-                    // check if object already exist
-                    if (!\array_key_exists($index, $xref['xref'])) {
-                        // store object offset position
-                        $xref['xref'][$index] = (int) ($sdatum[1] ?? 0);
-                    }
+            $this->processSingleObjIndex($xref, $obj_num, $sdatum);
+            ++$obj_num;
+        }
+    }
 
-                    break;
-                case 2:
-                    // compressed objects
-                    // $row[1] = object number of the object stream in which this object is stored
-                    // $row[2] = index of this object within the object stream
-                    $index = (int) ($sdatum[1] ?? 0) . '_0_' . (int) ($sdatum[2] ?? 0);
-                    $xref['xref'][$index] = -1;
-                    break;
-                default:
-                    // null objects
-                    break;
+    /**
+     * Process object indexes using explicit object numbers.
+     *
+     * @param XrefData                    $xref       XREF data
+     * @param array<int, int>             $objNumbers Object numbers for each stream row
+     * @param array<int, array<int, int>> $sdata      Stream data
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    protected function processObjIndexesMap(array &$xref, array $objNumbers, array $sdata): void
+    {
+        $objCount = \count($objNumbers);
+        $rowCount = \count($sdata);
+        if ($rowCount !== $objCount) {
+            throw new PPException(
+                'Invalid xref stream row count: expected ' . $objCount . ' rows from Index, got ' . $rowCount,
+            );
+        }
+
+        foreach ($objNumbers as $idx => $objNum) {
+            $row = $sdata[$idx] ?? null;
+            if (!\is_array($row)) {
+                throw new PPException('Invalid xref stream row at index ' . $idx);
             }
 
-            ++$obj_num;
+            $this->processSingleObjIndex($xref, $objNum, $row);
+        }
+    }
+
+    /**
+     * Process a single xref stream row.
+     *
+     * @param XrefData         $xref   XREF data
+     * @param int              $objNum Object number for the row
+     * @param array<int, int>  $sdatum Stream row data
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    protected function processSingleObjIndex(array &$xref, int $objNum, array $sdatum): void
+    {
+        $entryType = (int) ($sdatum[0] ?? 0);
+        switch ($entryType) {
+            case 0:
+                // (f) linked list of free objects
+                break;
+            case 1:
+                if (!\array_key_exists(1, $sdatum)) {
+                    throw new PPException(
+                        'Invalid xref stream entry for object ' . $objNum . ': missing offset for in-use entry',
+                    );
+                }
+
+                // (n) objects that are in use but are not compressed
+                // create unique object index: [object number]_[generation number]
+                $index = $objNum . '_' . (int) ($sdatum[2] ?? 0);
+                // check if object already exist
+                if (!\array_key_exists($index, $xref['xref'])) {
+                    // store object offset position
+                    $xref['xref'][$index] = (int) $sdatum[1];
+                }
+
+                break;
+            case 2:
+                if (!\array_key_exists(1, $sdatum) || !\array_key_exists(2, $sdatum)) {
+                    throw new PPException(
+                        'Invalid xref stream entry for object '
+                        . $objNum
+                        . ': missing object stream reference for compressed entry',
+                    );
+                }
+
+                // compressed objects
+                // $row[1] = object number of the object stream in which this object is stored
+                // $row[2] = index of this object within the object stream
+                $index = (int) $sdatum[1] . '_0_' . (int) $sdatum[2];
+                $xref['xref'][$index] = -1;
+                break;
+            default:
+                // null objects
+                break;
         }
     }
 
@@ -198,8 +256,16 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * @param array<int, RawObjectArray> $sarr        Stream data
      * @param XrefData                   $xref        XREF data
      * @param array<int, int>            $wbt         WBT data
-     * @param array{index_first: int|null, prevxref: int|null, columns: int, valid_crs: bool} $state Parsing state
+     * @param array{
+     *      index_sections: array<int, array{0:int, 1:int}>|null,
+     *      prevxref: int|null,
+     *      columns: int,
+     *      size: int|null,
+     *      valid_crs: bool
+     * } $state Parsing state
      * @param bool                       $filltrailer Fill trailer
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      *
      * @SuppressWarnings("PHPMD.CyclomaticComplexity")
      */
@@ -221,16 +287,16 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                     $state['valid_crs'] = \is_array($next) && $next[0] === '/' && $next[1] === 'XRef';
                     break;
                 case 'Index':
-                    // first object number in the subsection
-                    $indexFirst = $next[1][0][1] ?? null;
-                    if (\is_array($next) && \is_scalar($indexFirst)) {
-                        $state['index_first'] = (int) $indexFirst;
-                    }
-                    // number of entries in the subsection
-                    // $index_entries = \intval($sarr[($key + 1)][1][1][1]);
+                    $state['index_sections'] = $this->parseXrefIndexSections($next);
                     break;
                 case 'Prev':
                     $this->processXrefPrev($next, $state['prevxref']);
+                    break;
+                case 'Size':
+                    if (\is_array($next) && $next[0] === 'numeric') {
+                        $state['size'] = (int) $next[1];
+                    }
+
                     break;
                 case 'W':
                     // number of bytes (in the decoded stream) of the corresponding field
@@ -247,6 +313,76 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
 
             $this->processXrefTypeFt($val[1], $sarr, $key, $xref, $filltrailer);
         }
+    }
+
+    /**
+     * Parse the xref stream Index array into normalized [startObj, count] pairs.
+     *
+     * @param RawObjectArray|null $indexObj Index object token.
+     *
+     * @return array<int, array{0:int, 1:int}>|null
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    protected function parseXrefIndexSections(?array $indexObj): ?array
+    {
+        if (!\is_array($indexObj)) {
+            return null;
+        }
+
+        $values = $indexObj[1];
+        if (!\is_array($values)) {
+            return null;
+        }
+
+        if ((\count($values) % 2) !== 0) {
+            throw new PPException('Invalid xref stream Index array: expected even number of values');
+        }
+
+        $sections = [];
+        for ($idx = 0, $max = \count($values); $idx < $max; $idx += 2) {
+            $startToken = $values[$idx] ?? null;
+            $countToken = $values[$idx + 1] ?? null;
+            if (!\is_array($startToken) || !\is_array($countToken)) {
+                throw new PPException('Invalid xref stream Index array: expected numeric values');
+            }
+
+            if ($startToken[0] !== 'numeric' || $countToken[0] !== 'numeric') {
+                throw new PPException('Invalid xref stream Index array: expected numeric values');
+            }
+
+            $startObj = (int) $startToken[1];
+            $count = (int) $countToken[1];
+            if ($startObj < 0 || $count < 0) {
+                throw new PPException('Invalid xref stream Index array: values must be non-negative');
+            }
+
+            $sections[] = [$startObj, $count];
+        }
+
+        return $sections;
+    }
+
+    /**
+     * Build the full object-number map for decoded xref stream rows.
+     *
+     * @param array<int, array{0:int, 1:int}> $indexSections Normalized Index sections.
+     *
+     * @return array<int, int>
+     */
+    protected function buildXrefObjectNumbers(array $indexSections): array
+    {
+        $objNumbers = [];
+        foreach ($indexSections as $section) {
+            $startObj = $section[0];
+            $count = $section[1];
+            $limit = $startObj + $count;
+            for ($objNum = $startObj; $objNum < $limit; ++$objNum) {
+                $objNumbers[] = $objNum;
+            }
+        }
+
+        return $objNumbers;
     }
 
     /**

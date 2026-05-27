@@ -35,6 +35,8 @@ class XrefStreamHarness extends XrefStream
      *        'xref': array<string, int>,
      *    } $xref
      * @param array<int, array<int, int>> $sdata
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function processObjIndexesPublic(array &$xref, int &$obj_num, array $sdata): void
     {

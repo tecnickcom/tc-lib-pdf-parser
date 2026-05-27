@@ -67,7 +67,6 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
      */
     protected const XREF_EMPTY = [
         'trailer' => [
-            'encrypt' => '',
             'id' => [],
             'info' => '',
             'root' => '',
@@ -350,13 +349,15 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
 
         $wbt = [0, 0, 0];
         $state = [
-            'index_first' => null,
+            'index_sections' => null,
             'prevxref' => null,
             'columns' => $columns,
+            'size' => null,
             'valid_crs' => $valid_crs,
         ];
         $this->processXrefType($sarr, $xref, $wbt, $state, $filltrailer);
-        $index_first = $state['index_first'];
+        $index_sections = $state['index_sections'];
+        $size = $state['size'];
         $columns = $state['columns'];
         $valid_crs = $state['valid_crs'];
         // decode data
@@ -382,10 +383,16 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
             $sdata = [];
             $this->processDdata($sdata, $ddata, $wbt);
             $ddata = [];
-            // fill xref
-            $obj_num = $index_first ?? 0;
+            if ($index_sections === null) {
+                if ($size === null) {
+                    throw new PPException('Unable to determine xref stream Index coverage: missing Index and Size');
+                }
 
-            $this->processObjIndexes($xref, $obj_num, $sdata);
+                $index_sections = [[0, $size]];
+            }
+
+            $objNumbers = $this->buildXrefObjectNumbers($index_sections);
+            $this->processObjIndexesMap($xref, $objNumbers, $sdata);
         }
 
         // end decoding data

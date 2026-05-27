@@ -21,6 +21,9 @@ use PHPUnit\Framework\TestCase;
 
 class XrefTest extends TestCase
 {
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
     public function testProcessObjIndexesHandlesInUseAndCompressedObjects(): void
     {
         $xref = [
@@ -115,6 +118,24 @@ class XrefTest extends TestCase
     /**
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
+    public function testDecodeXrefLeavesEncryptUnsetWhenMissing(): void
+    {
+        $pdf =
+            "xref\r\n"
+            . "0 1\r\n"
+            . "0000000017 00000 n\r\n"
+            . "trailer << /Size 1 /Root 1 0 R /Info 2 0 R /ID [<AA><BB>] >>\r\n";
+
+        $parser = new XrefHarness();
+        $parser->setPdfDataPublic($pdf);
+        $xref = $parser->decodeXrefPublic(0, ['xref' => []]);
+
+        $this->assertArrayNotHasKey('encrypt', $xref['trailer']);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
     public function testDecodeXrefStreamParsesRowsAndTrailer(): void
     {
         $stream_data = \pack('C*', 0, 1, 10, 0, 0, 2, 5, 1);
@@ -154,6 +175,197 @@ class XrefTest extends TestCase
         $this->assertSame(['AA', 'BB'], $xref['trailer']['id']);
     }
 
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefStreamMapsMultiRangeIndexSections(): void
+    {
+        $stream_data = \pack(
+            'C*',
+            0,
+            1,
+            0,
+            0,
+            30,
+            0,
+            1,
+            0,
+            0,
+            31,
+            0,
+            1,
+            0,
+            0,
+            32,
+            0,
+            1,
+            0,
+            0,
+            33,
+            0,
+            1,
+            0,
+            0,
+            34,
+            0,
+            1,
+            0,
+            0,
+            35,
+            0,
+            1,
+            0,
+            0,
+            36,
+        );
+
+        $parser = new XrefHarness();
+        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubIndirectObject([
+            [
+                '<<',
+                [
+                    ['/', 'Type', 0],
+                    ['/', 'XRef', 0],
+                    ['/', 'W', 0],
+                    ['[', [['numeric', '1', 0], ['numeric', '3', 0], ['numeric', '0', 0]], 0],
+                    ['/', 'Index', 0],
+                    [
+                        '[',
+                        [
+                            ['numeric', '3', 0],
+                            ['numeric', '1', 0],
+                            ['numeric', '15', 0],
+                            ['numeric', '1', 0],
+                            ['numeric', '17', 0],
+                            ['numeric', '2', 0],
+                            ['numeric', '41', 0],
+                            ['numeric', '3', 0],
+                        ],
+                        0,
+                    ],
+                    ['/', 'Size', 0],
+                    ['numeric', '44', 0],
+                    ['/', 'DecodeParms', 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0]], 0],
+                ],
+                0,
+            ],
+            ['stream', $stream_data, 0, [$stream_data, []]],
+        ]);
+
+        $xref = $parser->decodeXrefStreamPublic(100, ['xref' => []]);
+
+        $this->assertSame(30, $xref['xref']['3_0'] ?? null);
+        $this->assertSame(31, $xref['xref']['15_0'] ?? null);
+        $this->assertSame(32, $xref['xref']['17_0'] ?? null);
+        $this->assertSame(33, $xref['xref']['18_0'] ?? null);
+        $this->assertSame(34, $xref['xref']['41_0'] ?? null);
+        $this->assertSame(35, $xref['xref']['42_0'] ?? null);
+        $this->assertSame(36, $xref['xref']['43_0'] ?? null);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefStreamFallsBackToSizeWhenIndexIsMissing(): void
+    {
+        $stream_data = \pack('C*', 0, 1, 0, 0, 20, 0, 1, 0, 0, 21);
+
+        $parser = new XrefHarness();
+        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubIndirectObject([
+            [
+                '<<',
+                [
+                    ['/', 'Type', 0],
+                    ['/', 'XRef', 0],
+                    ['/', 'W', 0],
+                    ['[', [['numeric', '1', 0], ['numeric', '3', 0], ['numeric', '0', 0]], 0],
+                    ['/', 'Size', 0],
+                    ['numeric', '2', 0],
+                    ['/', 'DecodeParms', 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0]], 0],
+                ],
+                0,
+            ],
+            ['stream', $stream_data, 0, [$stream_data, []]],
+        ]);
+
+        $xref = $parser->decodeXrefStreamPublic(100, ['xref' => []]);
+
+        $this->assertSame(20, $xref['xref']['0_0'] ?? null);
+        $this->assertSame(21, $xref['xref']['1_0'] ?? null);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefStreamRejectsOddIndexArrayLength(): void
+    {
+        $stream_data = \pack('C*', 0, 1, 0, 0, 20);
+
+        $parser = new XrefHarness();
+        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubIndirectObject([
+            [
+                '<<',
+                [
+                    ['/', 'Type', 0],
+                    ['/', 'XRef', 0],
+                    ['/', 'W', 0],
+                    ['[', [['numeric', '1', 0], ['numeric', '3', 0], ['numeric', '0', 0]], 0],
+                    ['/', 'Index', 0],
+                    ['[', [['numeric', '3', 0], ['numeric', '1', 0], ['numeric', '15', 0]], 0],
+                    ['/', 'Size', 0],
+                    ['numeric', '16', 0],
+                    ['/', 'DecodeParms', 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0]], 0],
+                ],
+                0,
+            ],
+            ['stream', $stream_data, 0, [$stream_data, []]],
+        ]);
+
+        $this->expectException(PPException::class);
+        $this->expectExceptionMessage('Invalid xref stream Index array: expected even number of values');
+        $parser->decodeXrefStreamPublic(100, ['xref' => []]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefStreamRejectsRowCountMismatchAgainstIndexCoverage(): void
+    {
+        $stream_data = \pack('C*', 0, 1, 0, 0, 20, 0, 1, 0, 0, 21);
+
+        $parser = new XrefHarness();
+        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubIndirectObject([
+            [
+                '<<',
+                [
+                    ['/', 'Type', 0],
+                    ['/', 'XRef', 0],
+                    ['/', 'W', 0],
+                    ['[', [['numeric', '1', 0], ['numeric', '3', 0], ['numeric', '0', 0]], 0],
+                    ['/', 'Index', 0],
+                    ['[', [['numeric', '3', 0], ['numeric', '3', 0]], 0],
+                    ['/', 'Size', 0],
+                    ['numeric', '20', 0],
+                    ['/', 'DecodeParms', 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0]], 0],
+                ],
+                0,
+            ],
+            ['stream', $stream_data, 0, [$stream_data, []]],
+        ]);
+
+        $this->expectException(PPException::class);
+        $this->expectExceptionMessage('Invalid xref stream row count: expected 3 rows from Index, got 2');
+        $parser->decodeXrefStreamPublic(100, ['xref' => []]);
+    }
+
     public function testProcessDdataUsesDefaultTypeWhenFirstFieldWidthIsZero(): void
     {
         $parser = new XrefHarness();
@@ -176,6 +388,9 @@ class XrefTest extends TestCase
         $parser->getXrefDataPublic();
     }
 
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
     public function testProcessObjIndexesIgnoresUnknownEntryTypes(): void
     {
         $xref = [
@@ -485,6 +700,8 @@ class XrefTest extends TestCase
                     ['numeric', '1', 0],
                     ['/', 'Prev', 0],
                     ['numeric', '77', 0],
+                    ['/', 'DecodeParms', 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '3', 0]], 0],
                 ],
                 0,
             ],
