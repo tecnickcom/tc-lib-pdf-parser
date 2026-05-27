@@ -43,7 +43,7 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
  *                     'root': string,
  *                     'size': int,
  *                 },
- *                 'xref': array<string, int>,
+ *                 'xref': array<string, int|string>,
  *             }
  *
  * @SuppressWarnings("PHPMD.ExcessiveClassComplexity")
@@ -141,8 +141,10 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                 // compressed objects
                 // $row[1] = object number of the object stream in which this object is stored
                 // $row[2] = index of this object within the object stream
-                $index = (int) $sdatum[1] . '_0_' . (int) $sdatum[2];
-                $xref['xref'][$index] = -1;
+                $index = $objNum . '_0';
+                if (!\array_key_exists($index, $xref['xref'])) {
+                    $xref['xref'][$index] = (int) $sdatum[1] . '_0_' . (int) $sdatum[2];
+                }
                 break;
             default:
                 // null objects

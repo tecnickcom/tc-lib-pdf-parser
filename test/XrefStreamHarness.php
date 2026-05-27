@@ -32,7 +32,7 @@ class XrefStreamHarness extends XrefStream
      *            'root': string,
      *            'size': int,
      *        },
-     *        'xref': array<string, int>,
+     *        'xref': array<string, int|string>,
      *    } $xref
      * @param array<int, array<int, int>> $sdata
      *
@@ -80,7 +80,7 @@ class XrefStreamHarness extends XrefStream
      * @param array<int, RawObjectArray> $sarr
      * @param array{
      *        trailer: array{encrypt?: string, id: array<int, string>, info: string, root: string, size: int},
-     *        xref: array<string, int>,
+     *        xref: array<string, int|string>,
      *    } $xref
      */
     public function processXrefTypeFtPublic(string $type, array $sarr, int $key, array &$xref, bool $filltrailer): void
@@ -92,12 +92,12 @@ class XrefStreamHarness extends XrefStream
      * @param array<int, RawObjectArray> $sarr
      * @param array{
      *        trailer: array{encrypt?: string, id: array<int, string>, info: string, root: string, size: int},
-     *        xref: array<string, int>,
+     *        xref: array<string, int|string>,
      *    } $xref
      *
      * @return array{
      *        trailer: array{encrypt?: string, id: array<int, string>, info: string, root: string, size: int},
-     *        xref: array<string, int>,
+     *        xref: array<string, int|string>,
      *    }
      */
     public function processXrefObjrefPublic(string $type, array $sarr, int $key, array $xref): array

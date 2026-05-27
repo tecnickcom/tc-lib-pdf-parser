@@ -47,7 +47,7 @@ class XrefTest extends TestCase
 
         $this->assertSame(6, $obj_num);
         $this->assertSame(42, $xref['xref']['3_0'] ?? null);
-        $this->assertSame(-1, $xref['xref']['7_0_4'] ?? null);
+        $this->assertSame('7_0_4', $xref['xref']['4_0'] ?? null);
     }
 
     /**
@@ -169,7 +169,7 @@ class XrefTest extends TestCase
         $xref = $parser->decodeXrefStreamPublic(100, ['xref' => []]);
 
         $this->assertSame(10, $xref['xref']['0_0'] ?? null);
-        $this->assertSame(-1, $xref['xref']['5_0_1'] ?? null);
+        $this->assertSame('5_0_1', $xref['xref']['1_0'] ?? null);
         $this->assertSame('1_0', $xref['trailer']['root']);
         $this->assertSame(2, $xref['trailer']['size']);
         $this->assertSame(['AA', 'BB'], $xref['trailer']['id']);

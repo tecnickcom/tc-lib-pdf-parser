@@ -32,7 +32,7 @@ class ParserHarness extends Parser
      *            'root': string,
      *            'size': int,
      *        },
-     *        'xref': array<string, int>,
+     *        'xref': array<string, int|string>,
      *    }
      */
     private array $stubXrefData = [
@@ -67,7 +67,7 @@ class ParserHarness extends Parser
      *            'root': string,
      *            'size': int,
      *        },
-     *        'xref': array<string, int>,
+     *        'xref': array<string, int|string>,
      *    } $xref
      */
     public function setStubXrefData(array $xref): void
@@ -116,7 +116,7 @@ class ParserHarness extends Parser
     }
 
     /**
-     * @param array<string, int> $xref
+     * @param array<string, int|string> $xref
      */
     public function setXrefMapPublic(array $xref): void
     {
@@ -246,7 +246,7 @@ class ParserHarness extends Parser
      *            'root': string,
      *            'size': int,
      *        },
-     *        'xref'?: array<string, int>,
+     *        'xref'?: array<string, int|string>,
      *    } $xref
      *
      * @return array{
@@ -257,7 +257,7 @@ class ParserHarness extends Parser
      *            'root': string,
      *            'size': int,
      *        },
-     *        'xref': array<string, int>,
+     *        'xref': array<string, int|string>,
      *    }
      */
     protected function getXrefData(int $offset = 0, array $xref = []): array

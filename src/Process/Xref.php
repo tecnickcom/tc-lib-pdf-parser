@@ -44,7 +44,7 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
  *                     'root': string,
  *                     'size': int,
  *                 },
- *                 'xref': array<string, int>,
+ *                 'xref': array<string, int|string>,
  *             }
  *
  * @phpstan-type XrefDataInput array{
@@ -55,7 +55,7 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
  *                     'root': string,
  *                     'size': int,
  *                 },
- *                 'xref'?: array<string, int>,
+ *                 'xref'?: array<string, int|string>,
  *             }
  */
 abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
@@ -159,11 +159,21 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
 
         $xref['xref'] ??= [];
 
-        // check xref position
+        // check xref position (allow leading whitespace before the xref keyword)
         $xrefPos = \strpos($this->pdfdata, 'xref', $startxref);
-        if ($xrefPos !== false && $xrefPos === $startxref) {
+        $hasPlainXref = false;
+        if ($xrefPos !== false && $xrefPos >= $startxref) {
+            $prefixLen = $xrefPos - $startxref;
+            $prefix = $prefixLen > 0 ? \substr($this->pdfdata, $startxref, $prefixLen) : '';
+            if (\trim($prefix, "\x00\x09\x0a\x0c\x0d\x20") === '') {
+                $hasPlainXref = true;
+            }
+        }
+
+        if ($hasPlainXref) {
             // Cross-Reference
-            $xref = $this->decodeXref($startxref, $xref);
+            $xrefStart = \is_int($xrefPos) ? $xrefPos : $startxref;
+            $xref = $this->decodeXref($xrefStart, $xref);
         } else {
             // Cross-Reference Stream
             $xref = $this->decodeXrefStream($startxref, $xref);

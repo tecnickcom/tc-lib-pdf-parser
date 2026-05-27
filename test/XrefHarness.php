@@ -59,7 +59,7 @@ class XrefHarness extends Xref
      *            'root': string,
      *            'size': int,
      *        },
-     *        'xref'?: array<string, int>,
+     *        'xref'?: array<string, int|string>,
      *    } $xref
      *
      * @return array{
@@ -70,7 +70,7 @@ class XrefHarness extends Xref
      *            'root': string,
      *            'size': int,
      *        },
-     *        'xref': array<string, int>,
+     *        'xref': array<string, int|string>,
      *    }
      *
      * @throws \Com\Tecnick\Pdf\Parser\Exception
@@ -89,7 +89,7 @@ class XrefHarness extends Xref
      *            'root': string,
      *            'size': int,
      *        },
-     *        'xref': array<string, int>,
+     *        'xref': array<string, int|string>,
      *    } $xref
      *
      * @return array{
@@ -100,7 +100,7 @@ class XrefHarness extends Xref
      *            'root': string,
      *            'size': int,
      *        },
-     *        'xref': array<string, int>,
+     *        'xref': array<string, int|string>,
      *    }
      *
      * @throws \Com\Tecnick\Pdf\Parser\Exception
@@ -119,7 +119,7 @@ class XrefHarness extends Xref
      *            'root': string,
      *            'size': int,
      *        },
-     *        'xref': array<string, int>,
+     *        'xref': array<string, int|string>,
      *    } $xref
      *
      * @return array{
@@ -130,7 +130,7 @@ class XrefHarness extends Xref
      *            'root': string,
      *            'size': int,
      *        },
-     *        'xref': array<string, int>,
+     *        'xref': array<string, int|string>,
      *    }
      *
      * @throws \Com\Tecnick\Pdf\Parser\Exception

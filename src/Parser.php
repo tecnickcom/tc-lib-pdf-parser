@@ -42,6 +42,13 @@ use Com\Tecnick\Pdf\Parser\Exception as PPException;
 class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
 {
     /**
+     * Cache of decoded object streams keyed by object stream reference.
+     *
+     * @var array<string, array<string, array<int, RawObjectArray>>>
+     */
+    private array $objstmCache = [];
+
+    /**
      * Array of configuration parameters.
      *
      * @var array<string, bool>
@@ -102,12 +109,22 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
                 continue;
             }
 
-            if ($offset <= 0) {
+            if (\is_int($offset)) {
+                if ($offset <= 0) {
+                    continue;
+                }
+
+                // decode objects with positive offset
+                $this->objects[$obj] = $this->getIndirectObject($obj, $offset, true);
                 continue;
             }
 
-            // decode objects with positive offset
-            $this->objects[$obj] = $this->getIndirectObject($obj, $offset, true);
+            if (\preg_match('/^\d+_\d+_\d+$/', $offset) === 1) {
+                $compressedObj = $this->getCompressedObject($obj, $offset);
+                if ($compressedObj !== null) {
+                    $this->objects[$obj] = $compressedObj;
+                }
+            }
         }
 
         $this->pdfdata = '';
@@ -216,21 +233,260 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
                 return $this->objects[$obj[1]][0];
             }
 
-            if (\array_key_exists($obj[1], $this->xref['xref'])) {
-                $xrefOffset = $this->xref['xref'][$obj[1]] ?? null;
-                if (!\is_int($xrefOffset)) {
+            if (isset($this->xref['xref'][$obj[1]])) {
+                $xrefOffset = $this->xref['xref'][$obj[1]];
+                if (\is_int($xrefOffset)) {
+                    if ($xrefOffset <= 0) {
+                        return $obj;
+                    }
+
+                    // parse new object
+                    $this->objects[$obj[1]] = $this->getIndirectObject($obj[1], $xrefOffset, false);
+                    if (($this->objects[$obj[1]][0] ?? null) !== null) {
+                        return $this->objects[$obj[1]][0];
+                    }
+
                     return $obj;
                 }
 
-                // parse new object
-                $this->objects[$obj[1]] = $this->getIndirectObject($obj[1], $xrefOffset, false);
-                if (($this->objects[$obj[1]][0] ?? null) !== null) {
-                    return $this->objects[$obj[1]][0];
+                if (\preg_match('/^\d+_\d+_\d+$/', $xrefOffset) === 1) {
+                    $compressedObj = $this->getCompressedObject($obj[1], $xrefOffset);
+                    if ($compressedObj !== null) {
+                        $this->objects[$obj[1]] = $compressedObj;
+                        return $this->objects[$obj[1]][0] ?? $obj;
+                    }
+
+                    return $obj;
                 }
+
+                return $obj;
             }
         }
 
         return $obj;
+    }
+
+    /**
+     * Resolve one compressed object by object-stream locator.
+     *
+     * @param string $objRef   Target object reference (e.g. "14_0").
+     * @param string $locator  Object-stream locator "streamObj_streamGen_index".
+     *
+     * @return array<int, RawObjectArray>|null
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    private function getCompressedObject(string $objRef, string $locator): ?array
+    {
+        $parts = \explode('_', $locator);
+        if (\count($parts) !== 3 || !isset($parts[0], $parts[1], $parts[2])) {
+            return null;
+        }
+
+        $streamRef = $parts[0] . '_' . $parts[1];
+        $cache = $this->objstmCache[$streamRef] ?? null;
+        if (!\is_array($cache)) {
+            $cache = $this->parseObjectStream($streamRef);
+            $this->objstmCache[$streamRef] = $cache;
+        }
+
+        $obj = $cache[$objRef] ?? null;
+        return \is_array($obj) ? $obj : null;
+    }
+
+    /**
+     * Parse a PDF object stream and return extracted objects keyed as "objNum_0".
+     *
+     * @param string $streamRef Object stream reference.
+     *
+     * @return array<string, array<int, RawObjectArray>>
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    private function parseObjectStream(string $streamRef): array
+    {
+        if (($this->objects[$streamRef][0] ?? null) === null) {
+            $streamOffset = $this->xref['xref'][$streamRef] ?? null;
+            if (!\is_int($streamOffset) || $streamOffset <= 0) {
+                return [];
+            }
+
+            $this->objects[$streamRef] = $this->getIndirectObject($streamRef, $streamOffset, true);
+        }
+
+        $streamObj = $this->objects[$streamRef];
+        [$dict, $decodedData] = $this->extractObjectStreamEnvelope($streamObj);
+        if ($dict === null || $decodedData === null) {
+            return [];
+        }
+
+        [$n, $first] = $this->readObjectStreamConfig($dict);
+        if ($n <= 0 || $first < 0) {
+            return [];
+        }
+
+        $index = $this->readObjectStreamIndex($decodedData, $n, $first);
+        if ($index === null) {
+            return [];
+        }
+
+        return $this->extractObjectsFromStream($decodedData, $first, $index['objNums'], $index['objOffsets']);
+    }
+
+    /**
+     * @param array<int, RawObjectArray> $streamObj
+     *
+     * @return array{0: array<int, RawObjectArray>|null, 1: string|null}
+     */
+    private function extractObjectStreamEnvelope(array $streamObj): array
+    {
+        $dict = null;
+        $decodedData = null;
+        foreach ($streamObj as $element) {
+            if ($element[0] === '<<' && \is_array($element[1])) {
+                $dict = $element[1];
+                continue;
+            }
+
+            if ($element[0] === 'stream' && \is_array($element[3] ?? null)) {
+                $decodedData = $element[3][0];
+            }
+        }
+
+        return [
+            \is_array($dict) ? $dict : null,
+            \is_string($decodedData) ? $decodedData : null,
+        ];
+    }
+
+    /**
+     * @param array<int, RawObjectArray> $dict
+     *
+     * @return array{0: int, 1: int}
+     */
+    private function readObjectStreamConfig(array $dict): array
+    {
+        $n = 0;
+        $first = 0;
+        $dictCount = \count($dict);
+        for ($idx = 0; $idx < $dictCount; ++$idx) {
+            $key = $dict[$idx] ?? null;
+            $val = $dict[$idx + 1] ?? null;
+            if (!\is_array($key) || !\is_array($val)) {
+                continue;
+            }
+
+            if ($key[0] !== '/' || !\is_string($key[1])) {
+                continue;
+            }
+
+            if ($key[1] === 'N' && $val[0] === 'numeric' && \is_scalar($val[1])) {
+                $n = (int) $val[1];
+                continue;
+            }
+
+            if ($key[1] === 'First' && $val[0] === 'numeric' && \is_scalar($val[1])) {
+                $first = (int) $val[1];
+            }
+        }
+
+        return [$n, $first];
+    }
+
+    /**
+     * @param string $decodedData Decoded object stream payload.
+     * @param int    $n           Number of embedded objects.
+     * @param int    $first       Byte offset where object bodies begin.
+     *
+     * @return array{objNums: array<int, int>, objOffsets: array<int, int>}|null
+     */
+    private function readObjectStreamIndex(string $decodedData, int $n, int $first): ?array
+    {
+        $header = \substr($decodedData, 0, $first);
+        $meta = \preg_split('/\s+/', \trim($header));
+        if (!\is_array($meta) || \count($meta) < (2 * $n)) {
+            return null;
+        }
+
+        $objNums = [];
+        $objOffsets = [];
+        for ($idx = 0; $idx < $n; ++$idx) {
+            $numTok = $meta[2 * $idx] ?? null;
+            $offTok = $meta[(2 * $idx) + 1] ?? null;
+            if (!\is_string($numTok) || !\is_string($offTok) || !\is_numeric($numTok) || !\is_numeric($offTok)) {
+                return null;
+            }
+
+            $objNums[$idx] = (int) $numTok;
+            $objOffsets[$idx] = (int) $offTok;
+        }
+
+        return [
+            'objNums' => $objNums,
+            'objOffsets' => $objOffsets,
+        ];
+    }
+
+    /**
+     * @param string          $decodedData Decoded object stream payload.
+     * @param int             $first       Byte offset where object bodies begin.
+     * @param array<int, int> $objNums     Embedded object numbers.
+     * @param array<int, int> $objOffsets  Embedded object offsets from $first.
+     *
+     * @return array<string, array<int, RawObjectArray>>
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    private function extractObjectsFromStream(string $decodedData, int $first, array $objNums, array $objOffsets): array
+    {
+        $result = [];
+        $n = \count($objNums);
+        $streamLen = \strlen($decodedData);
+        for ($idx = 0; $idx < $n; ++$idx) {
+            $start = $first + ($objOffsets[$idx] ?? 0);
+            $nextStart = $idx < ($n - 1) ? $first + ($objOffsets[$idx + 1] ?? 0) : $streamLen;
+            if ($start < 0 || $nextStart < $start || $start > $streamLen) {
+                continue;
+            }
+
+            $body = \trim(\substr($decodedData, $start, $nextStart - $start));
+            if ($body === '') {
+                continue;
+            }
+
+            $miniObj = $this->parseObjectBody($body);
+            $key = ($objNums[$idx] ?? 0) . '_0';
+            if ($key !== '0_0' && $miniObj !== null) {
+                $result[$key] = $miniObj;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Parse a raw object body into parser token array by embedding it in a tiny PDF.
+     *
+     * @param string $body Raw object body from an object stream.
+     *
+     * @return array<int, RawObjectArray>|null
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    private function parseObjectBody(string $body): ?array
+    {
+        $header = "%PDF-1.4\n";
+        $indirect = "1 0 obj\n" . $body . "\nendobj\n";
+        $objOffset = \strlen($header);
+        $startxref = $objOffset + \strlen($indirect);
+        $xref = \sprintf("xref\n0 2\n0000000000 65535 f \n%010d 00000 n \n", $objOffset);
+        $trailer = "trailer\n<< /Size 2 /Root 1 0 R >>\n";
+        $miniPdf = $header . $indirect . $xref . $trailer . "startxref\n" . $startxref . "\n%%EOF\n";
+
+        $parser = new self($this->cfg);
+        [, $objects] = $parser->parse($miniPdf);
+        $obj = $objects['1_0'] ?? null;
+        return \is_array($obj) ? $obj : null;
     }
 
     /**
