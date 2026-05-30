@@ -261,6 +261,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
      * @param array{
      *      index_sections: array<int, array{0:int, 1:int}>|null,
      *      prevxref: int|null,
+     *      predictor: int,
      *      columns: int,
      *      size: int|null,
      *      valid_crs: bool
@@ -309,7 +310,7 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
                     }
                     break;
                 case 'DecodeParms':
-                    $this->processXrefDecodeParms($next, $state['columns']);
+                    $this->processXrefDecodeParms($next, $state['columns'], $state['predictor']);
                     break;
             }
 
@@ -404,10 +405,11 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
     /**
      * Process XREF type DecodeParms
      *
-     * @param RawObjectArray|null $next    Next token
-     * @param int                 $columns Number of columns
+     * @param RawObjectArray|null $next      Next token
+     * @param int                 $columns   Number of columns
+     * @param int                 $predictor Predictor value
      */
-    protected function processXrefDecodeParms(?array $next, int &$columns): void
+    protected function processXrefDecodeParms(?array $next, int &$columns, int &$predictor): void
     {
         $decpar = $next[1] ?? null;
         if (!\is_array($decpar)) {
@@ -418,11 +420,16 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
             $nextDecpar = $decpar[$kdc + 1] ?? null;
             if (\is_array($nextDecpar) && $vdc[0] === '/' && $vdc[1] === 'Columns' && $nextDecpar[0] === 'numeric') {
                 $columns = (int) $nextDecpar[1];
-                break;
+                continue;
+            }
+
+            if (\is_array($nextDecpar) && $vdc[0] === '/' && $vdc[1] === 'Predictor' && $nextDecpar[0] === 'numeric') {
+                $predictor = (int) $nextDecpar[1];
             }
         }
 
         $columns = \max(0, $columns);
+        $predictor = \max(0, $predictor);
     }
 
     /**

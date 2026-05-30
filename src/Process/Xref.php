@@ -265,6 +265,55 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
     }
 
     /**
+     * Decode the raw xref stream rows into xref entry values.
+     *
+     * @param string          $streamData     Raw stream payload.
+     * @param int             $entryWidth     Width of a decoded row without PNG predictor metadata.
+     * @param int             $pngColumns     Column count to use when a PNG predictor is active.
+     * @param bool            $usePngPredictor Whether to apply PNG unprediction.
+     * @param array<int, int> $wbt            WBT data.
+     *
+     * @return array<int, array<int, int>>
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    protected function decodeXrefStreamRows(
+        string $streamData,
+        int $entryWidth,
+        int $pngColumns,
+        bool $usePngPredictor,
+        array $wbt,
+    ): array {
+        $rowlen = $usePngPredictor ? $pngColumns + 1 : $entryWidth;
+
+        // convert the stream into an array of integers
+        $sdata = \unpack('C*', $streamData);
+        if ($sdata === false) {
+            throw new PPException('Unable to unpack xref stream data');
+        }
+
+        // split the rows
+        $sdata = \array_chunk($sdata, \max(1, $rowlen), false);
+
+        if ($usePngPredictor) {
+            // initialize decoded array
+            $ddata = [];
+            // initialize first row with zeros
+            $filllen = \max(0, $pngColumns);
+            $prev_row = \array_fill(0, $filllen, 0);
+            $this->pngUnpredictor($sdata, $ddata, $pngColumns, $prev_row);
+        } else {
+            $ddata = $sdata;
+        }
+
+        // complete decoding
+        $sdata = [];
+        $this->processDdata($sdata, $ddata, $wbt);
+
+        return $sdata;
+    }
+
+    /**
      * Decode the Cross-Reference section
      *
      * @param XrefDataPartial $xref         Previous xref array (if any).
@@ -348,6 +397,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
 
         $valid_crs = false;
         $columns = 0;
+        $predictor = 0;
         $sarr = $xrefcrs[0][1] ?? [];
         /** @var array<int, array>|string $sarr */
         if (!\is_array($sarr)) {
@@ -361,6 +411,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
         $state = [
             'index_sections' => null,
             'prevxref' => null,
+            'predictor' => $predictor,
             'columns' => $columns,
             'size' => null,
             'valid_crs' => $valid_crs,
@@ -369,29 +420,15 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
         $index_sections = $state['index_sections'];
         $size = $state['size'];
         $columns = $state['columns'];
+        $predictor = (int) $state['predictor'];
         $valid_crs = $state['valid_crs'];
         // decode data
         $streamData = $xrefcrs[1][3][0] ?? null;
         if ($valid_crs && \is_string($streamData)) {
-            // number of bytes in a row
-            $rowlen = (int) ($columns + 1);
-            // convert the stream into an array of integers
-            $sdata = \unpack('C*', $streamData);
-            if ($sdata === false) {
-                throw new PPException('Unable to unpack xref stream data');
-            }
-
-            // split the rows
-            $sdata = \array_chunk($sdata, \max(1, $rowlen), false);
-            // initialize decoded array
-            $ddata = [];
-            // initialize first row with zeros
-            $filllen = \max(0, $rowlen);
-            $prev_row = \array_fill(0, $filllen, 0);
-            $this->pngUnpredictor($sdata, $ddata, $columns, $prev_row);
-            // complete decoding
-            $sdata = [];
-            $this->processDdata($sdata, $ddata, $wbt);
+            $entryWidth = \max(1, (int) (($wbt[0] ?? 0) + ($wbt[1] ?? 0) + ($wbt[2] ?? 0)));
+            $usePngPredictor = $predictor >= 10;
+            $pngColumns = $columns > 0 ? $columns : $entryWidth;
+            $sdata = $this->decodeXrefStreamRows($streamData, $entryWidth, $pngColumns, $usePngPredictor, $wbt);
             $ddata = [];
             if ($index_sections === null) {
                 if ($size === null) {

@@ -71,9 +71,9 @@ class XrefStreamHarness extends XrefStream
     }
 
     /** @param RawObjectArray|null $next */
-    public function processXrefDecodeParmsPublic(?array $next, int &$columns): void
+    public function processXrefDecodeParmsPublic(?array $next, int &$columns, int &$predictor): void
     {
-        $this->processXrefDecodeParms($next, $columns);
+        $this->processXrefDecodeParms($next, $columns, $predictor);
     }
 
     /**

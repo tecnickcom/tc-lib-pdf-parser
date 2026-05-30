@@ -159,7 +159,7 @@ class XrefTest extends TestCase
                     ['/', 'ID', 0],
                     ['[', [['hex', 'AA', 0], ['hex', 'BB', 0]], 0],
                     ['/', 'DecodeParms', 0],
-                    ['<<', [['/', 'Columns', 0], ['numeric', '3', 0]], 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '3', 0], ['/', 'Predictor', 0], ['numeric', '10', 0]], 0],
                 ],
                 0,
             ],
@@ -247,7 +247,7 @@ class XrefTest extends TestCase
                     ['/', 'Size', 0],
                     ['numeric', '44', 0],
                     ['/', 'DecodeParms', 0],
-                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0]], 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0], ['/', 'Predictor', 0], ['numeric', '10', 0]], 0],
                 ],
                 0,
             ],
@@ -285,7 +285,7 @@ class XrefTest extends TestCase
                     ['/', 'Size', 0],
                     ['numeric', '2', 0],
                     ['/', 'DecodeParms', 0],
-                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0]], 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0], ['/', 'Predictor', 0], ['numeric', '10', 0]], 0],
                 ],
                 0,
             ],
@@ -320,7 +320,7 @@ class XrefTest extends TestCase
                     ['/', 'Size', 0],
                     ['numeric', '16', 0],
                     ['/', 'DecodeParms', 0],
-                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0]], 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0], ['/', 'Predictor', 0], ['numeric', '10', 0]], 0],
                 ],
                 0,
             ],
@@ -354,7 +354,7 @@ class XrefTest extends TestCase
                     ['/', 'Size', 0],
                     ['numeric', '20', 0],
                     ['/', 'DecodeParms', 0],
-                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0]], 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '4', 0], ['/', 'Predictor', 0], ['numeric', '10', 0]], 0],
                 ],
                 0,
             ],
@@ -455,11 +455,18 @@ class XrefTest extends TestCase
         $this->assertSame(17, $prevxref);
 
         $columns = 9;
-        $parser->processXrefDecodeParmsPublic(['name', 'x', 0], $columns);
+        $predictor = 3;
+        $parser->processXrefDecodeParmsPublic(['name', 'x', 0], $columns, $predictor);
         $this->assertSame(9, $columns);
+        $this->assertSame(3, $predictor);
 
-        $parser->processXrefDecodeParmsPublic(['<<', [['/', 'Columns', 0], ['numeric', '-5', 0]], 0], $columns);
+        $parser->processXrefDecodeParmsPublic(
+            ['<<', [['/', 'Columns', 0], ['numeric', '-5', 0], ['/', 'Predictor', 0], ['numeric', '12', 0]], 0],
+            $columns,
+            $predictor,
+        );
         $this->assertSame(0, $columns);
+        $this->assertSame(12, $predictor);
     }
 
     public function testProcessXrefTypeFtAndObjrefCoverTrailerBranches(): void
@@ -569,7 +576,7 @@ class XrefTest extends TestCase
                     ['/', 'Size', 0],
                     ['numeric', '1', 0],
                     ['/', 'DecodeParms', 0],
-                    ['<<', [['/', 'Columns', 0], ['numeric', '3', 0]], 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '3', 0], ['/', 'Predictor', 0], ['numeric', '10', 0]], 0],
                 ],
                 0,
             ],
@@ -701,7 +708,7 @@ class XrefTest extends TestCase
                     ['/', 'Prev', 0],
                     ['numeric', '77', 0],
                     ['/', 'DecodeParms', 0],
-                    ['<<', [['/', 'Columns', 0], ['numeric', '3', 0]], 0],
+                    ['<<', [['/', 'Columns', 0], ['numeric', '3', 0], ['/', 'Predictor', 0], ['numeric', '10', 0]], 0],
                 ],
                 0,
             ],
