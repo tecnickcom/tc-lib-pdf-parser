@@ -720,4 +720,240 @@ class XrefTest extends TestCase
         $this->assertSame(77, $parser->capturedOffset);
         $this->assertSame(77, $xref['xref']['prev_0'] ?? null);
     }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testProcessObjIndexesMapRejectsSparseRowLookup(): void
+    {
+        $parser = new XrefStreamHarness();
+        $xref = [
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '',
+                'size' => 0,
+            ],
+            'xref' => [],
+        ];
+
+        $this->expectException(PPException::class);
+        $this->expectExceptionMessage('Invalid xref stream row at index 2');
+        $parser->processObjIndexesMapPublic($xref, [2 => 10], [[1, 20, 0]]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testProcessSingleObjIndexRejectsMissingMandatoryFields(): void
+    {
+        $parser = new XrefStreamHarness();
+        $xref = [
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '',
+                'size' => 0,
+            ],
+            'xref' => [],
+        ];
+
+        try {
+            $parser->processSingleObjIndexPublic($xref, 8, [1]);
+            $this->fail('Expected missing offset exception for in-use entry.');
+        } catch (PPException $exception) {
+            $this->assertSame(
+                'Invalid xref stream entry for object 8: missing offset for in-use entry',
+                $exception->getMessage(),
+            );
+        }
+
+        $this->expectException(PPException::class);
+        $this->expectExceptionMessage(
+            'Invalid xref stream entry for object 9: missing object stream reference for compressed entry',
+        );
+        $parser->processSingleObjIndexPublic($xref, 9, [2, 55]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testParseXrefIndexSectionsCoversNullAndValidationErrors(): void
+    {
+        $parser = new XrefStreamHarness();
+
+        $this->assertNull($parser->parseXrefIndexSectionsPublic(null));
+        $this->assertNull($parser->parseXrefIndexSectionsPublic(['[', 'oops', 0]));
+
+        try {
+            $parser->parseXrefIndexSectionsPublic(['[', [['name', 'x', 0], ['numeric', '1', 0]], 0]);
+            $this->fail('Expected invalid numeric token exception.');
+        } catch (PPException $exception) {
+            $this->assertSame('Invalid xref stream Index array: expected numeric values', $exception->getMessage());
+        }
+
+        $this->expectException(PPException::class);
+        $this->expectExceptionMessage('Invalid xref stream Index array: values must be non-negative');
+        $parser->parseXrefIndexSectionsPublic(['[', [['numeric', '-1', 0], ['numeric', '1', 0]], 0]);
+    }
+
+    public function testBuildXrefObjectNumbersExpandsSections(): void
+    {
+        $parser = new XrefStreamHarness();
+
+        $this->assertSame([3, 4, 5, 10], $parser->buildXrefObjectNumbersPublic([[3, 3], [10, 1]]));
+        $this->assertSame([], $parser->buildXrefObjectNumbersPublic([]));
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefStreamThrowsWhenIndexAndSizeAreMissing(): void
+    {
+        $stream_data = \pack('C*', 1, 9, 0);
+
+        $parser = new XrefHarness();
+        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubIndirectObject([
+            [
+                '<<',
+                [
+                    ['/', 'Type', 0],
+                    ['/', 'XRef', 0],
+                    ['/', 'W', 0],
+                    ['[', [['numeric', '1', 0], ['numeric', '1', 0], ['numeric', '1', 0]], 0],
+                ],
+                0,
+            ],
+            ['stream', $stream_data, 0, [$stream_data, []]],
+        ]);
+
+        $this->expectException(PPException::class);
+        $this->expectExceptionMessage('Unable to determine xref stream Index coverage: missing Index and Size');
+        $parser->decodeXrefStreamPublic(100, ['xref' => []]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefStreamWithoutPredictorUsesRawRows(): void
+    {
+        $stream_data = \pack('C*', 1, 9, 0);
+
+        $parser = new XrefHarness();
+        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubIndirectObject([
+            [
+                '<<',
+                [
+                    ['/', 'Type', 0],
+                    ['/', 'XRef', 0],
+                    ['/', 'W', 0],
+                    ['[', [['numeric', '1', 0], ['numeric', '1', 0], ['numeric', '1', 0]], 0],
+                    ['/', 'Index', 0],
+                    ['[', [['numeric', '0', 0], ['numeric', '1', 0]], 0],
+                    ['/', 'Size', 0],
+                    ['numeric', '1', 0],
+                ],
+                0,
+            ],
+            ['stream', $stream_data, 0, [$stream_data, []]],
+        ]);
+
+        $xref = $parser->decodeXrefStreamPublic(100, ['xref' => []]);
+        $this->assertSame(9, $xref['xref']['0_0'] ?? null);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefBreaksWhenEntryPatternStartsAtDifferentOffset(): void
+    {
+        $pdf = "xref\r\nabc\r\n0 1 n\r\ntrailer << /Size 1 >>\r\n";
+
+        $parser = new XrefHarness();
+        $parser->setPdfDataPublic($pdf);
+        $xref = $parser->decodeXrefPublic(0, ['xref' => ['9_0' => 99]]);
+
+        $this->assertSame(99, $xref['xref']['9_0'] ?? null);
+        $this->assertSame(1, $xref['trailer']['size']);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testParseXrefIndexSectionsRejectsNonArrayTokens(): void
+    {
+        $parser = new XrefStreamHarness();
+
+        $this->expectException(PPException::class);
+        $this->expectExceptionMessage('Invalid xref stream Index array: expected numeric values');
+        $parser->parseXrefIndexSectionsPublic(['[', [1 => ['numeric', '1', 0], 2 => ['numeric', '2', 0]], 0]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testProcessXrefTypeSkipsSlashTokenWithNonStringName(): void
+    {
+        $parser = new XrefStreamHarness();
+        $xref = [
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '',
+                'size' => 0,
+            ],
+            'xref' => [],
+        ];
+        $wbt = [0, 0, 0];
+        $state = [
+            'index_sections' => null,
+            'prevxref' => null,
+            'predictor' => 0,
+            'columns' => 0,
+            'size' => null,
+            'valid_crs' => false,
+        ];
+
+        $parser->processXrefTypePublic(
+            [
+                ['/', [['numeric', '1', 0]], 0],
+                ['numeric', '7', 0],
+            ],
+            $xref,
+            $wbt,
+            $state,
+            true,
+        );
+
+        $this->assertSame([], $xref['xref']);
+        $this->assertFalse($state['valid_crs']);
+    }
+
+    public function testProcessXrefObjrefReturnsWhenObjrefValueIsNotString(): void
+    {
+        $parser = new XrefStreamHarness();
+        $xref = [
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '',
+                'size' => 0,
+            ],
+            'xref' => [],
+        ];
+
+        $result = $parser->processXrefObjrefPublic(
+            'Root',
+            [
+                ['/', 'Root', 0],
+                ['objref', [['numeric', '1', 0]], 0],
+            ],
+            0,
+            $xref,
+        );
+
+        $this->assertSame($xref, $result);
+    }
 }

@@ -155,7 +155,7 @@ abstract class RawObject
      * Process name object
      * \x2F SOLIDUS
      *
-     * @param string         $char    Symbol to process
+     * @param string        $char    Symbol to process
      * @param-out int       $offset  Offset after processing
      * @param-out string    $objtype Object type after processing
      * @param-out string    $objval  Object content after processing
@@ -182,7 +182,7 @@ abstract class RawObject
      * Process literal string object
      * \x28 LEFT PARENTHESIS and \x29 RIGHT PARENTHESIS
      *
-     * @param string      $char    Symbol to process
+     * @param string     $char    Symbol to process
      * @param-out int    $offset  Offset after processing
      * @param-out string $objtype Object type after processing
      * @param-out string $objval  Object content after processing
@@ -225,7 +225,7 @@ abstract class RawObject
      * Process array content
      * \x5B LEFT SQUARE BRACKET and \x5D RIGHT SQUARE BRACKET
      *
-     * @param string       $char    Symbol to process
+     * @param string      $char    Symbol to process
      * @param-out int     $offset  Offset after processing
      * @param-out string  $objtype Object type after processing
      * @param-out array   $objval  Object content after processing
@@ -255,9 +255,9 @@ abstract class RawObject
     /**
      * Process \x3C LESS-THAN SIGN and \x3E GREATER-THAN SIGN
      *
-     * @param string       $char    Symbol to process
-     * @param-out int     $offset  Offset after processing
-     * @param-out string  $objtype Object type after processing
+     * @param string           $char    Symbol to process
+     * @param-out int          $offset  Offset after processing
+     * @param-out string       $objtype Object type after processing
      * @param-out string|array $objval  Object content after processing
      */
     protected function processAngular(string $char, int &$offset, string &$objtype, string|array &$objval): void

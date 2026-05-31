@@ -19,6 +19,9 @@ namespace Test;
 use Com\Tecnick\Pdf\Parser\Exception as PPException;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
+ */
 class ParserProcessingTest extends TestCase
 {
     /**
@@ -405,6 +408,265 @@ class ParserProcessingTest extends TestCase
     }
 
     /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testParseResolvesCompressedObjectFromObjectStream(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setStubXrefData([
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '1_0',
+                'size' => 3,
+            ],
+            'xref' => [
+                '1_0' => 10,
+                '2_0' => '1_0_0',
+            ],
+        ]);
+        $parser->setStubIndirectReturn($this->buildObjectStreamObject(1, 4, '2 0 (A)'));
+
+        $parsed = $parser->parse("%PDF-1.7\n");
+
+        $this->assertArrayHasKey('2_0', $parsed[1]);
+        $obj = $parsed[1]['2_0'] ?? null;
+        $this->assertIsArray($obj);
+        $this->assertNotEmpty($obj);
+        $this->assertCount(1, $parser->getIndirectCalls());
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testParseSkipsObjectAlreadyInjectedDuringIteration(): void
+    {
+        $parser = new class() extends ParserHarness {
+            protected function getIndirectObject(string $obj_ref, int $offset = 0, bool $decoding = true): array
+            {
+                $obj = parent::getIndirectObject($obj_ref, $offset, $decoding);
+                if ($obj_ref === '1_0') {
+                    $this->objects['2_0'] = [['string', 'prefilled', 0]];
+                }
+
+                return $obj;
+            }
+        };
+
+        $parser->setStubXrefData([
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '1_0',
+                'size' => 3,
+            ],
+            'xref' => [
+                '1_0' => 10,
+                '2_0' => 20,
+            ],
+        ]);
+        $parser->setStubIndirectReturn([['numeric', '9', 0]]);
+
+        $parsed = $parser->parse("%PDF-1.7\n");
+
+        $calls = $parser->getIndirectCalls();
+        $this->assertCount(1, $calls);
+        $first = $calls[0] ?? null;
+        $this->assertIsArray($first);
+        $this->assertSame('1_0', $first[0]);
+        $this->assertSame('prefilled', $parsed[1]['2_0'][0][1] ?? '');
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testParseSkipsCompressedObjectWhenStreamEnvelopeIsInvalid(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setStubXrefData([
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '1_0',
+                'size' => 3,
+            ],
+            'xref' => [
+                '1_0' => 10,
+                '2_0' => '1_0_0',
+            ],
+        ]);
+        $parser->setStubIndirectReturn([
+            ['<<', [['/', 'N', 0], ['numeric', '1', 0], ['/', 'First', 0], ['numeric', '4', 0]], 0],
+            ['stream', 'raw', 0],
+        ]);
+
+        $parsed = $parser->parse("%PDF-1.7\n");
+
+        $this->assertArrayNotHasKey('2_0', $parsed[1]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetObjectValReturnsOriginalWhenCompressedLookupFails(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setXrefMapPublic([
+            '2_0' => '1_0_0',
+            '1_0' => 0,
+        ]);
+
+        $obj = ['objref', '2_0', 0];
+        $result = $parser->getObjectValPublic($obj);
+
+        $this->assertSame($obj, $result);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetObjectValReturnsOriginalForNonPositiveOffsetAndInvalidLocator(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setXrefMapPublic(['2_0' => 0]);
+        $obj = ['objref', '2_0', 0];
+        $this->assertSame($obj, $parser->getObjectValPublic($obj));
+
+        $parser = new ParserHarness();
+        $parser->setXrefMapPublic(['2_0' => 'bad_locator']);
+        $this->assertSame($obj, $parser->getObjectValPublic($obj));
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetObjectValReturnsOriginalWhenIndirectObjectParsesEmpty(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setXrefMapPublic(['2_0' => 10]);
+        $parser->setStubIndirectReturn([]);
+
+        $obj = ['objref', '2_0', 0];
+        $this->assertSame($obj, $parser->getObjectValPublic($obj));
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetObjectValReturnsFirstElementForResolvedCompressedObject(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setXrefMapPublic([
+            '2_0' => '1_0_0',
+            '1_0' => 12,
+        ]);
+        $parser->setStubIndirectReturn($this->buildObjectStreamObject(1, 4, '2 0 (A)'));
+
+        $resolved = $parser->getObjectValPublic(['objref', '2_0', 0]);
+
+        $this->assertNotSame('objref', $resolved[0]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetObjectValHandlesObjectStreamIndexAndBodyValidation(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setXrefMapPublic([
+            '2_0' => '1_0_0',
+            '1_0' => 12,
+        ]);
+        $parser->setStubIndirectReturn($this->buildObjectStreamObject(1, 4, 'x y (A)'));
+
+        $obj = ['objref', '2_0', 0];
+        $this->assertSame($obj, $parser->getObjectValPublic($obj));
+
+        $parser = new ParserHarness();
+        $parser->setXrefMapPublic([
+            '2_0' => '1_0_0',
+            '1_0' => 12,
+        ]);
+        $parser->setStubIndirectReturn($this->buildObjectStreamObject(1, 4, '0 0 ()'));
+        $this->assertSame($obj, $parser->getObjectValPublic($obj));
+
+        $parser = new ParserHarness();
+        $parser->setXrefMapPublic([
+            '2_0' => '1_0_0',
+            '1_0' => 12,
+        ]);
+        $parser->setStubIndirectReturn($this->buildObjectStreamObject(0, 4, '2 0 (A)'));
+        $this->assertSame($obj, $parser->getObjectValPublic($obj));
+
+        $parser = new ParserHarness();
+        $parser->setXrefMapPublic([
+            '2_0' => '1_0_0',
+            '1_0' => 12,
+        ]);
+        $parser->setStubIndirectReturn($this->buildObjectStreamObject(1, 0, ''));
+        $this->assertSame($obj, $parser->getObjectValPublic($obj));
+
+        $parser = new ParserHarness();
+        $parser->setXrefMapPublic([
+            '2_0' => '1_0_0',
+            '1_0' => 12,
+        ]);
+        $parser->setStubIndirectReturn($this->buildObjectStreamObject(1, 6, '2 -10 '));
+        $this->assertSame($obj, $parser->getObjectValPublic($obj));
+
+        $parser = new ParserHarness();
+        $parser->setXrefMapPublic([
+            '2_0' => '1_0_0',
+            '1_0' => 12,
+        ]);
+        $parser->setStubIndirectReturn($this->buildObjectStreamObject(1, 4, '2 0    '));
+        $this->assertSame($obj, $parser->getObjectValPublic($obj));
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetDecodeParmsHandlesSparseDictionaryIndexes(): void
+    {
+        $parser = new ParserHarness();
+        $sdic = [
+            ['/', 'DecodeParms', 0],
+            [
+                '<<',
+                [
+                    2 => ['/', 'Columns', 0],
+                    3 => ['numeric', '5', 0],
+                ],
+                0,
+            ],
+        ];
+
+        $this->assertSame([], $parser->getDecodeParmsPublic($sdic, 0));
+    }
+
+    /**
+     * @return array<int, RawObjectArray>
+     */
+    private function buildObjectStreamObject(int $n, int $first, string $decodedData): array
+    {
+        return [
+            [
+                '<<',
+                [
+                    ['/', 'Type', 0],
+                    ['/', 'ObjStm', 0],
+                    ['/', 'N', 0],
+                    ['numeric', (string) $n, 0],
+                    ['/', 'First', 0],
+                    ['numeric', (string) $first, 0],
+                ],
+                0,
+            ],
+            ['stream', 'raw', 0, [$decodedData, []]],
+        ];
+    }
+
+    /**
      * Regression: processAngular() must bail out when getRawObject() fails
      * to advance $offset, rather than spinning forever and exhausting PHP
      * memory. Without the guard, the inner do-while loop accumulates
@@ -447,5 +709,57 @@ class ParserProcessingTest extends TestCase
         $this->assertSame('[', $element[0]);
         $this->assertIsArray($element[1]);
         $this->assertLessThan(5, \count($element[1]));
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testParentRawObjectParsesBooleanKeywords(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setPdfDataPublic('true false');
+
+        $first = $parser->callParentGetRawObject(0);
+        $second = $parser->callParentGetRawObject(5);
+
+        $this->assertSame('boolean', $first[0]);
+        $this->assertSame('true', $first[1]);
+        $this->assertSame('boolean', $second[0]);
+        $this->assertSame('false', $second[1]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testParentRawObjectParsesNestedParentheses(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setPdfDataPublic('((ab))');
+
+        $element = $parser->callParentGetRawObject(0);
+
+        $this->assertSame('(', $element[0]);
+        $this->assertSame('(ab)', $element[1]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testParentRawObjectParsesHexStringAndMalformedHexFallback(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setPdfDataPublic('< 4A 4B >');
+
+        $hex = $parser->callParentGetRawObject(0);
+        $this->assertSame('<', $hex[0]);
+        $this->assertSame(' 4A 4B ', $hex[1]);
+
+        $parser = new ParserHarness();
+        $parser->setPdfDataPublic('<GG>');
+        $fallback = $parser->callParentGetRawObject(0);
+
+        $this->assertSame('<', $fallback[0]);
+        $this->assertSame('', $fallback[1]);
+        $this->assertSame(4, $fallback[2]);
     }
 }
