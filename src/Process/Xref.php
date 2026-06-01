@@ -133,10 +133,6 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
             }
 
             $matches = \array_pop($matches);
-            if ($matches === null) {
-                throw new PPException('Unable to find startxref (2)');
-            }
-
             $startxref = (int) ($matches[1] ?? 0);
         } elseif ((int) ($pos = \strpos($this->pdfdata, 'xref', $offset)) <= ($offset + 4)) {
             // Already pointing at the xref table
@@ -257,11 +253,8 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
             throw new PPException('Unable to find trailer');
         }
 
-        if (($trmatches_temp[1][0] ?? null) === null) {
-            throw new PPException('Unable to parse trailer data');
-        }
-
-        return $this->getTrailerData($xref, $trmatches_temp[1][0]);
+        $trailerData = $trmatches_temp[1][0] ?? '';
+        return $this->getTrailerData($xref, $trailerData);
     }
 
     /**
@@ -288,9 +281,6 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
 
         // convert the stream into an array of integers
         $sdata = \unpack('C*', $streamData);
-        if ($sdata === false) {
-            throw new PPException('Unable to unpack xref stream data');
-        }
 
         // split the rows
         $sdata = \array_chunk($sdata, \max(1, $rowlen), false);
@@ -477,12 +467,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
                 $colWidth = (int) ($wbt[$col] ?? 0);
                 for ($byte = 0; $byte < $colWidth; ++$byte) {
                     if (\array_key_exists($idx, $row)) {
-                        $rowValue = $row[$idx] ?? null;
-                        if (!\is_int($rowValue)) {
-                            ++$idx;
-                            continue;
-                        }
-
+                        $rowValue = (int) ($row[$idx] ?? 0);
                         $currentValue = (int) ($sdata[$key][$col] ?? 0);
                         $shift = ($colWidth - 1 - $byte) * 8;
                         $sdata[$key][$col] = $currentValue + ($rowValue << $shift);

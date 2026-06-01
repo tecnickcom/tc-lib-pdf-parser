@@ -55,6 +55,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      */
     private array $cfg = [
         'ignore_filter_errors' => false,
+        'decode_streams' => true,
     ];
 
     /**
@@ -66,12 +67,19 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      *                                 errors;
      *                                 'ignore_missing_filter_decoders' :
      *                                 if true ignore missing filter
-     *                                 decoding errors.
+     *                                 decoding errors;
+     *                                 'decode_streams':
+     *                                 if true, decode stream payloads while parsing
+     *                                 regular indirect objects.
      */
     public function __construct(array $cfg = [])
     {
         if (\array_key_exists('ignore_filter_errors', $cfg)) {
             $this->cfg['ignore_filter_errors'] = $cfg['ignore_filter_errors'];
+        }
+
+        if (\array_key_exists('decode_streams', $cfg)) {
+            $this->cfg['decode_streams'] = $cfg['decode_streams'];
         }
     }
 
@@ -104,6 +112,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
         $this->xref = $this->getXrefData();
         // parse all document objects
         $this->objects = [];
+        $decodeStreams = $this->cfg['decode_streams'] ?? true;
         foreach ($this->xref['xref'] as $obj => $offset) {
             if (\array_key_exists($obj, $this->objects)) {
                 continue;
@@ -115,7 +124,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
                 }
 
                 // decode objects with positive offset
-                $this->objects[$obj] = $this->getIndirectObject($obj, $offset, true);
+                $this->objects[$obj] = $this->getIndirectObject($obj, $offset, $decodeStreams);
                 continue;
             }
 
@@ -279,11 +288,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
     private function getCompressedObject(string $objRef, string $locator): ?array
     {
         $parts = \explode('_', $locator);
-        if (\count($parts) !== 3 || !isset($parts[0], $parts[1], $parts[2])) {
-            return null;
-        }
-
-        $streamRef = $parts[0] . '_' . $parts[1];
+        $streamRef = $parts[0] . '_' . ($parts[1] ?? '');
         $cache = $this->objstmCache[$streamRef] ?? null;
         if (!\is_array($cache)) {
             $cache = $this->parseObjectStream($streamRef);
@@ -315,6 +320,16 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
         }
 
         $streamObj = $this->objects[$streamRef];
+        if (!$this->hasDecodedStreamPayload($streamObj)) {
+            $streamOffset = $this->xref['xref'][$streamRef] ?? null;
+            if (!\is_int($streamOffset) || $streamOffset <= 0) {
+                return [];
+            }
+
+            $streamObj = $this->getIndirectObject($streamRef, $streamOffset, true);
+            $this->objects[$streamRef] = $streamObj;
+        }
+
         [$dict, $decodedData] = $this->extractObjectStreamEnvelope($streamObj);
         if ($dict === null || $decodedData === null) {
             return [];
@@ -462,6 +477,28 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
         }
 
         return $result;
+    }
+
+    /**
+     * Check whether a parsed object already includes decoded stream payload.
+     *
+     * @param array<int, RawObjectArray> $streamObj
+     */
+    private function hasDecodedStreamPayload(array $streamObj): bool
+    {
+        foreach ($streamObj as $element) {
+            if ($element[0] !== 'stream') {
+                continue;
+            }
+
+            if (!\is_array($element[3] ?? null)) {
+                continue;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**

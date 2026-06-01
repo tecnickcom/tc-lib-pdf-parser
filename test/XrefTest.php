@@ -614,6 +614,19 @@ class XrefTest extends TestCase
     /**
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
+    public function testGetXrefDataThrowsStartxref3ForNonZeroOffsetWithoutMarkers(): void
+    {
+        $parser = new XrefHarness();
+        $parser->setPdfDataPublic('%PDF-1.7\nbody without xref hints');
+
+        $this->expectException(PPException::class);
+        $this->expectExceptionMessage('Unable to find startxref (3)');
+        $parser->getXrefDataPublic(5, ['xref' => []]);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
     public function testDecodeXrefCallsGetXrefDataWhenTrailerContainsPrev(): void
     {
         $parser = new class() extends XrefHarness {

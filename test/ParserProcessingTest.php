@@ -84,6 +84,48 @@ class ParserProcessingTest extends TestCase
     /**
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
+    public function testParseUsesDecodeStreamsConfigForDirectObjects(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setStubXrefData([
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '1_0',
+                'size' => 2,
+            ],
+            'xref' => [
+                '1_0' => 10,
+            ],
+        ]);
+        $parser->setStubIndirectReturn([['numeric', '42', 0]]);
+
+        $parser->parse("%PDF-1.7\n");
+        $calls = $parser->getIndirectCalls();
+        $this->assertSame(['1_0', 10, true], $calls[0] ?? null);
+
+        $lazy = new ParserHarness(['decode_streams' => false]);
+        $lazy->setStubXrefData([
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '1_0',
+                'size' => 2,
+            ],
+            'xref' => [
+                '1_0' => 10,
+            ],
+        ]);
+        $lazy->setStubIndirectReturn([['numeric', '42', 0]]);
+
+        $lazy->parse("%PDF-1.7\n");
+        $lazyCalls = $lazy->getIndirectCalls();
+        $this->assertSame(['1_0', 10, false], $lazyCalls[0] ?? null);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
     public function testParentIndirectObjectRejectsInvalidReference(): void
     {
         $parser = new ParserHarness();
@@ -439,6 +481,89 @@ class ParserProcessingTest extends TestCase
     /**
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
+    public function testParseWithLazyStreamsReparsesObjectStreamForDecodedPayload(): void
+    {
+        $parser = new class(['decode_streams' => false]) extends ParserHarness {
+            /** @var array<int, array{0:string,1:int,2:bool}> */
+            private array $calls = [];
+
+            /**
+             * @return array<int, RawObjectArray>
+             */
+            protected function getIndirectObject(string $obj_ref, int $offset = 0, bool $decoding = true): array
+            {
+                $this->calls[] = [$obj_ref, $offset, $decoding];
+
+                if ($obj_ref !== '1_0') {
+                    return [['null', 'null', 0]];
+                }
+
+                if ($decoding) {
+                    return [
+                        [
+                            '<<',
+                            [
+                                ['/', 'Type', 0],
+                                ['/', 'ObjStm', 0],
+                                ['/', 'N', 0],
+                                ['numeric', '1', 0],
+                                ['/', 'First', 0],
+                                ['numeric', '4', 0],
+                            ],
+                            0,
+                        ],
+                        ['stream', 'raw', 0, ['2 0 (A)', []]],
+                    ];
+                }
+
+                return [
+                    [
+                        '<<',
+                        [
+                            ['/', 'Type', 0],
+                            ['/', 'ObjStm', 0],
+                            ['/', 'N', 0],
+                            ['numeric', '1', 0],
+                            ['/', 'First', 0],
+                            ['numeric', '4', 0],
+                        ],
+                        0,
+                    ],
+                    ['stream', 'raw', 0],
+                ];
+            }
+
+            /** @return array<int, array{0:string,1:int,2:bool}> */
+            public function getCalls(): array
+            {
+                return $this->calls;
+            }
+        };
+
+        $parser->setStubXrefData([
+            'trailer' => [
+                'id' => [],
+                'info' => '',
+                'root' => '1_0',
+                'size' => 3,
+            ],
+            'xref' => [
+                '1_0' => 10,
+                '2_0' => '1_0_0',
+            ],
+        ]);
+
+        $parsed = $parser->parse("%PDF-1.7\n");
+
+        $this->assertArrayHasKey('2_0', $parsed[1]);
+        $calls = $parser->getCalls();
+        $this->assertSame(['1_0', 10, false], $calls[0] ?? null);
+        $this->assertSame(['1_0', 10, true], $calls[1] ?? null);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
     public function testParseSkipsObjectAlreadyInjectedDuringIteration(): void
     {
         $parser = new class() extends ParserHarness {
@@ -534,6 +659,37 @@ class ParserProcessingTest extends TestCase
 
         $parser = new ParserHarness();
         $parser->setXrefMapPublic(['2_0' => 'bad_locator']);
+        $this->assertSame($obj, $parser->getObjectValPublic($obj));
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testGetObjectValReturnsOriginalWhenCachedObjectStreamNeedsMissingReparseOffset(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setObjectsPublic([
+            '1_0' => [
+                [
+                    '<<',
+                    [
+                        ['/', 'Type', 0],
+                        ['/', 'ObjStm', 0],
+                        ['/', 'N', 0],
+                        ['numeric', '1', 0],
+                        ['/', 'First', 0],
+                        ['numeric', '4', 0],
+                    ],
+                    0,
+                ],
+                ['stream', 'raw', 0],
+            ],
+        ]);
+        $parser->setXrefMapPublic([
+            '2_0' => '1_0_0',
+        ]);
+
+        $obj = ['objref', '2_0', 0];
         $this->assertSame($obj, $parser->getObjectValPublic($obj));
     }
 

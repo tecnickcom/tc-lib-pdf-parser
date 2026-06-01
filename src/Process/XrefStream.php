@@ -449,15 +449,6 @@ abstract class XrefStream extends \Com\Tecnick\Pdf\Parser\Process\RawObject
 
         $next = $sarr[$key + 1] ?? null;
 
-        if ($xref['trailer'] === []) {
-            $xref['trailer'] = [
-                'id' => [],
-                'info' => '',
-                'root' => '',
-                'size' => 0,
-            ];
-        }
-
         switch ($type) {
             case 'Size':
                 if (\is_array($next) && $next[0] === 'numeric') {
