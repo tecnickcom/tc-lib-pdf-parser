@@ -134,9 +134,9 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
 
             $matches = \array_pop($matches);
             $startxref = (int) ($matches[1] ?? 0);
-        } elseif ((int) ($pos = \strpos($this->pdfdata, 'xref', $offset)) <= ($offset + 4)) {
+        } elseif (($pos = \strpos($this->pdfdata, 'xref', $offset)) !== false && $pos <= ($offset + 4)) {
             // Already pointing at the xref table
-            $startxref = (int) $pos;
+            $startxref = $pos;
         } elseif (\preg_match('/([0-9]+[\s][0-9]+[\s]obj)/i', $this->pdfdata, $matches, PREG_OFFSET_CAPTURE, $offset)) {
             // Cross-Reference Stream object
             $startxref = (int) $offset;
@@ -246,15 +246,73 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
             $obj_num = (int) ($matches[1][0] ?? 0);
         }
 
-        // get trailer data
-        $trmatches_temp = [];
-        $trl = \preg_match('/trailer[\s]*+<<(.*)>>/isU', $this->pdfdata, $trmatches_temp, PREG_OFFSET_CAPTURE, $offset);
-        if ($trl !== 1) {
+        // get trailer data (using a depth-aware scan so nested dictionaries are not truncated)
+        $trailerData = $this->extractTrailerDict($offset);
+        if ($trailerData === null) {
             throw new PPException('Unable to find trailer');
         }
 
-        $trailerData = $trmatches_temp[1][0] ?? '';
         return $this->getTrailerData($xref, $trailerData);
+    }
+
+    /**
+     * Extract the content of the trailer dictionary, honouring nested "<<...>>" pairs.
+     *
+     * @param int $offset Offset from which to look for the 'trailer' keyword.
+     *
+     * @return string|null The dictionary content (without the outer delimiters), or null if not found.
+     */
+    protected function extractTrailerDict(int $offset): ?string
+    {
+        $search = $offset;
+        while (($trpos = \strpos($this->pdfdata, 'trailer', $search)) !== false) {
+            $search = $trpos + 7; // 7 is the length of the word 'trailer'
+            // only whitespace is allowed between the 'trailer' keyword and the '<<' delimiter
+            $open = $search + \strspn($this->pdfdata, "\x00\x09\x0a\x0c\x0d\x20", $search);
+            if (\substr($this->pdfdata, $open, 2) !== '<<') {
+                continue;
+            }
+
+            $content = $this->extractBalancedDict($open);
+            if ($content !== null) {
+                return $content;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Return the content between the outermost balanced "<<" and ">>" starting at $open.
+     *
+     * @param int $open Offset of the opening '<<'.
+     *
+     * @return string|null Inner content, or null if the dictionary is not balanced.
+     */
+    protected function extractBalancedDict(int $open): ?string
+    {
+        $len = \strlen($this->pdfdata);
+        $depth = 0;
+        $contentStart = $open + 2;
+        for ($pos = $open; $pos < ($len - 1); ++$pos) {
+            $pair = $this->pdfdata[$pos] . $this->pdfdata[$pos + 1];
+            if ($pair === '<<') {
+                ++$depth;
+                ++$pos;
+                continue;
+            }
+
+            if ($pair === '>>') {
+                --$depth;
+                if ($depth === 0) {
+                    return \substr($this->pdfdata, $contentStart, $pos - $contentStart);
+                }
+
+                ++$pos;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -378,7 +436,14 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
             throw new PPException('Unable to find xref stream');
         }
 
-        $xrefcrs = $this->getIndirectObject($xrefobj[1], $startxref, true);
+        // the xref rows are un-predicted by this class itself, so suppress the generic
+        // predictor handling while decoding the cross-reference stream payload
+        $this->applyStreamPredictor = false;
+        try {
+            $xrefcrs = $this->getIndirectObject($xrefobj[1], $startxref, true);
+        } finally {
+            $this->applyStreamPredictor = true;
+        }
 
         $filltrailer = ($xref['trailer'] ?? []) === [];
         if ($filltrailer) {
@@ -467,7 +532,7 @@ abstract class Xref extends \Com\Tecnick\Pdf\Parser\Process\XrefStream
                 $colWidth = (int) ($wbt[$col] ?? 0);
                 for ($byte = 0; $byte < $colWidth; ++$byte) {
                     if (\array_key_exists($idx, $row)) {
-                        $rowValue = (int) ($row[$idx] ?? 0);
+                        $rowValue = (int) $row[$idx];
                         $currentValue = (int) ($sdata[$key][$col] ?? 0);
                         $shift = ($colWidth - 1 - $byte) * 8;
                         $sdata[$key][$col] = $currentValue + ($rowValue << $shift);

@@ -108,10 +108,14 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
 
         // get PDF content string
         $this->pdfdata = \substr($data, $trimpos);
+        // reset per-document state so the same instance can be reused for multiple parses
+        $this->mrkoff = [];
+        $this->objstmCache = [];
+        $this->objects = [];
+        $this->xref = self::XREF_EMPTY;
         // get xref and trailer data
         $this->xref = $this->getXrefData();
         // parse all document objects
-        $this->objects = [];
         $decodeStreams = $this->cfg['decode_streams'] ?? true;
         foreach ($this->xref['xref'] as $obj => $offset) {
             if (\array_key_exists($obj, $this->objects)) {
@@ -198,11 +202,12 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
 
             $element = $this->getRawObject($offset);
             $offset = $element[2];
+            // capture the stream payload start before any nested tokenization can clobber it
+            $streamDataStart = $this->streamDataStart;
             $prevElement = $objdata[$idx - 1] ?? null;
             // decode stream using stream's dictionary information
             if (
-                $decoding
-                && $element[0] === 'stream'
+                $element[0] === 'stream'
                 && \is_array($prevElement)
                 && $prevElement[0] === '<<'
                 && \is_array($prevElement[1])
@@ -210,7 +215,17 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
             ) {
                 /** @var array<int, RawObjectArray> $sdic */
                 $sdic = $prevElement[1];
-                $element[3] = $this->decodeStream($sdic, $element[1]);
+                // re-slice the payload using the declared /Length when the first "endstream"
+                // marker turned out to be a false positive inside the binary data
+                $reslice = $this->resliceStreamByLength($sdic, $streamDataStart, $element[1]);
+                if ($reslice !== null) {
+                    $element[1] = $reslice['stream'];
+                    $offset = $reslice['offset'];
+                }
+
+                if ($decoding) {
+                    $element[3] = $this->decodeStream($sdic, $element[1]);
+                }
             }
 
             $objdata[$idx] = $element;
@@ -222,6 +237,88 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
 
         // return raw object content
         return $objdata;
+    }
+
+    /**
+     * Re-slice a stream payload using the declared /Length when the first "endstream"
+     * marker found by the tokenizer was a false positive inside the binary data.
+     *
+     * @param array<int, RawObjectArray> $sdic        Stream's dictionary array.
+     * @param int                        $dataStart   Offset where the stream payload starts.
+     * @param string                     $extracted   Payload extracted up to the first "endstream".
+     *
+     * @return array{stream: string, offset: int}|null Corrected payload and next offset, or null.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    private function resliceStreamByLength(array $sdic, int $dataStart, string $extracted): ?array
+    {
+        $length = $this->getDeclaredLength($sdic);
+        if ($length === null || $length <= 0) {
+            return null;
+        }
+
+        // only act when the declared length reaches further than the extracted payload
+        if ($length <= \strlen($extracted)) {
+            return null;
+        }
+
+        $pdfLen = \strlen($this->pdfdata);
+        $end = $dataStart + $length;
+        if ($dataStart < 0 || $end > $pdfLen) {
+            return null;
+        }
+
+        // the declared length must be followed (after optional EOL) by the real "endstream"
+        $tailStart = $end + \strspn($this->pdfdata, "\x00\x09\x0a\x0c\x0d\x20", $end);
+        if (\substr($this->pdfdata, $tailStart, 9) !== 'endstream') {
+            return null;
+        }
+
+        return [
+            'stream' => \substr($this->pdfdata, $dataStart, $length),
+            'offset' => $tailStart,
+        ];
+    }
+
+    /**
+     * Resolve the declared /Length of a stream dictionary, following indirect references.
+     *
+     * @param array<int, RawObjectArray> $sdic Stream's dictionary array.
+     *
+     * @return int|null The declared length, or null when it cannot be determined.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    private function getDeclaredLength(array $sdic): ?int
+    {
+        $count = \count($sdic);
+        for ($i = 0; $i < $count; ++$i) {
+            $key = $sdic[$i] ?? null;
+            if (!\is_array($key) || $key[0] !== '/' || $key[1] !== 'Length') {
+                continue;
+            }
+
+            $val = $sdic[$i + 1] ?? null;
+            if (!\is_array($val)) {
+                return null;
+            }
+
+            if ($val[0] === 'numeric' && \is_scalar($val[1])) {
+                return (int) $val[1];
+            }
+
+            if ($val[0] === 'objref') {
+                $resolved = $this->getObjectVal($val);
+                if ($resolved[0] === 'numeric' && \is_scalar($resolved[1])) {
+                    return (int) $resolved[1];
+                }
+            }
+
+            return null;
+        }
+
+        return null;
     }
 
     /**
@@ -502,7 +599,11 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
     }
 
     /**
-     * Parse a raw object body into parser token array by embedding it in a tiny PDF.
+     * Parse a raw object body into a parser token array.
+     *
+     * The body is parsed in an isolated sub-parser instance (so indirect references it
+     * may contain are not resolved against the outer document), but without bootstrapping
+     * a full synthetic PDF: the object is decoded directly, skipping the xref machinery.
      *
      * @param string $body Raw object body from an object stream.
      *
@@ -512,18 +613,30 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
      */
     private function parseObjectBody(string $body): ?array
     {
-        $header = "%PDF-1.4\n";
-        $indirect = "1 0 obj\n" . $body . "\nendobj\n";
-        $objOffset = \strlen($header);
-        $startxref = $objOffset + \strlen($indirect);
-        $xref = \sprintf("xref\n0 2\n0000000000 65535 f \n%010d 00000 n \n", $objOffset);
-        $trailer = "trailer\n<< /Size 2 /Root 1 0 R >>\n";
-        $miniPdf = $header . $indirect . $xref . $trailer . "startxref\n" . $startxref . "\n%%EOF\n";
-
         $parser = new self($this->cfg);
-        [, $objects] = $parser->parse($miniPdf);
-        $obj = $objects['1_0'] ?? null;
-        return \is_array($obj) ? $obj : null;
+        $obj = $parser->parseStandaloneObject($body);
+        return $obj === [] ? null : $obj;
+    }
+
+    /**
+     * Decode a single indirect object body in isolation.
+     *
+     * @param string $body Raw object body (the content between "obj" and "endobj").
+     *
+     * @return array<int, RawObjectArray> Object data.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    protected function parseStandaloneObject(string $body): array
+    {
+        $this->mrkoff = [];
+        $this->objstmCache = [];
+        $this->objects = [];
+        $this->xref = self::XREF_EMPTY;
+        $this->pdfdata = "1 0 obj\n" . $body . "\nendobj\n";
+        $obj = $this->getIndirectObject('1_0', 0, $this->cfg['decode_streams'] ?? true);
+        $this->pdfdata = '';
+        return $obj;
     }
 
     /**
@@ -788,6 +901,140 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
             }
         }
 
+        // reverse the PNG/TIFF predictor declared in DecodeParms (the filter layer only
+        // inflates/decompresses and leaves predictor metadata in place)
+        if ($errorfilters === [] && $this->applyStreamPredictor) {
+            $stream = $this->applyPredictor($stream, $params);
+        }
+
         return [$stream, $errorfilters];
+    }
+
+    /**
+     * Reverse a PNG/TIFF predictor as described by the stream's DecodeParms.
+     *
+     * @param string               $data   Decompressed (still predicted) stream data.
+     * @param array<string, mixed> $params DecodeParms dictionary.
+     *
+     * @return string The un-predicted data (unchanged when no predictor applies).
+     */
+    private function applyPredictor(string $data, array $params): string
+    {
+        $predictor = (int) ($params['Predictor'] ?? 1);
+        if ($predictor <= 1 || $data === '') {
+            return $data;
+        }
+
+        $colors = \max(1, (int) ($params['Colors'] ?? 1));
+        $bpc = \max(1, (int) ($params['BitsPerComponent'] ?? 8));
+        $columns = \max(1, (int) ($params['Columns'] ?? 1));
+        $bpp = \max(1, (int) \ceil(($colors * $bpc) / 8));
+        $rowlen = (int) \ceil(($colors * $bpc * $columns) / 8);
+        if ($rowlen <= 0) {
+            return $data;
+        }
+
+        if ($predictor === 2) {
+            return $this->applyTiffPredictor($data, $rowlen, $bpp, $bpc);
+        }
+
+        // PNG predictors (10-15): each row is prefixed with a filter-type byte
+        return $this->applyPngPredictor($data, $rowlen, $bpp);
+    }
+
+    /**
+     * Reverse a TIFF Predictor 2 (horizontal differencing) over 8-bit samples.
+     *
+     * @param string $data   Predicted data.
+     * @param int    $rowlen Number of bytes per row.
+     * @param int    $bpp    Number of bytes per pixel/sample group.
+     * @param int    $bpc    Bits per component.
+     *
+     * @return string Un-predicted data.
+     */
+    private function applyTiffPredictor(string $data, int $rowlen, int $bpp, int $bpc): string
+    {
+        if ($bpc !== 8) {
+            // sub-byte TIFF prediction is not supported; leave the data unchanged
+            return $data;
+        }
+
+        /** @var array<int, int> $bytes */
+        $bytes = \array_values((array) \unpack('C*', $data));
+        $rows = \intdiv(\strlen($data), $rowlen);
+        for ($r = 0; $r < $rows; ++$r) {
+            $base = $r * $rowlen;
+            for ($i = $bpp; $i < $rowlen; ++$i) {
+                $sample = $bytes[$base + $i] ?? 0;
+                $left = $bytes[$base + $i - $bpp] ?? 0;
+                $bytes[$base + $i] = ($sample + $left) & 0xff;
+            }
+        }
+
+        return \pack('C*', ...$bytes);
+    }
+
+    /**
+     * Reverse the PNG predictors (filter types 0-4) declared per row.
+     *
+     * @param string $data   Predicted data (each row prefixed by its filter-type byte).
+     * @param int    $rowlen Number of bytes per row (excluding the filter-type byte).
+     * @param int    $bpp    Number of bytes per pixel (offset to the "left" byte).
+     *
+     * @return string Un-predicted data.
+     */
+    private function applyPngPredictor(string $data, int $rowlen, int $bpp): string
+    {
+        $stride = $rowlen + 1;
+        $len = \strlen($data);
+        $out = '';
+        $prev = \array_fill(0, \max(0, $rowlen), 0);
+        for ($pos = 0; ($pos + $stride) <= $len; $pos += $stride) {
+            $filterType = \ord($data[$pos]);
+            /** @var array<int, int> $cur */
+            $cur = \array_values((array) \unpack('C*', \substr($data, $pos + 1, $rowlen)));
+            for ($i = 0; $i < $rowlen; ++$i) {
+                $sample = $cur[$i] ?? 0;
+                $left = $i >= $bpp ? $cur[$i - $bpp] ?? 0 : 0;
+                $up = $prev[$i] ?? 0;
+                $upleft = $i >= $bpp ? $prev[$i - $bpp] ?? 0 : 0;
+                $cur[$i] = match ($filterType) {
+                    1 => ($sample + $left) & 0xff,
+                    2 => ($sample + $up) & 0xff,
+                    3 => ($sample + \intdiv($left + $up, 2)) & 0xff,
+                    4 => ($sample + $this->paethPredictor($left, $up, $upleft)) & 0xff,
+                    default => $sample & 0xff,
+                };
+            }
+
+            $out .= \pack('C*', ...$cur);
+            $prev = $cur;
+        }
+
+        return $out;
+    }
+
+    /**
+     * PNG Paeth predictor function.
+     *
+     * @param int $left   Byte to the left.
+     * @param int $up     Byte above.
+     * @param int $upleft Byte above-left.
+     */
+    private function paethPredictor(int $left, int $up, int $upleft): int
+    {
+        $estimate = $left + $up - $upleft;
+        $distLeft = \abs($estimate - $left);
+        $distUp = \abs($estimate - $up);
+        $distUpLeft = \abs($estimate - $upleft);
+        if ($distLeft <= $distUp && $distLeft <= $distUpLeft) {
+            return $left;
+        }
+
+        if ($distUp <= $distUpLeft) {
+            return $up;
+        }
+
+        return $upleft;
     }
 }

@@ -16,7 +16,7 @@ BuildArch: noarch
 
 Requires:  php(language) >= 8.2.0
 Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) < 2.0.0
-Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) >= 2.8.0
+Requires:  php-composer(%{c_vendor}/tc-lib-pdf-filter) >= 2.9.0
 Requires:  php-pcre
 
 Provides:  php-composer(%{c_vendor}/%{gh_project}) = %{version}

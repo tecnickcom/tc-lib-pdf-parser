@@ -32,7 +32,7 @@ class ParserProcessingTest extends TestCase
         $parser = new ParserHarness();
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Empty PDF data.');
+        $this->expectExceptionMessageIsOrContains('Empty PDF data.');
         $parser->parse('');
     }
 
@@ -44,7 +44,7 @@ class ParserProcessingTest extends TestCase
         $parser = new ParserHarness();
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Invalid PDF data: missing %PDF header.');
+        $this->expectExceptionMessageIsOrContains('Invalid PDF data: missing %PDF header.');
         $parser->parse('not a pdf');
     }
 
@@ -132,7 +132,7 @@ class ParserProcessingTest extends TestCase
         $parser->setPdfDataPublic("%PDF-1.7\n1 0 obj\nendobj\n");
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Invalid object reference:');
+        $this->expectExceptionMessageIsOrContains('Invalid object reference:');
         $parser->callParentGetIndirectObject('invalid', 0, true);
     }
 

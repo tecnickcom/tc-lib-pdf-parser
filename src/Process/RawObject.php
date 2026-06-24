@@ -81,6 +81,20 @@ abstract class RawObject
     protected string $pdfdata = '';
 
     /**
+     * Offset where the data of the most recently tokenized stream begins
+     * (i.e. just after the "stream" keyword and its end-of-line marker).
+     */
+    protected int $streamDataStart = 0;
+
+    /**
+     * Whether to apply the PNG/TIFF predictor from DecodeParms when decoding a stream.
+     *
+     * This is temporarily disabled while the xref machinery decodes a cross-reference
+     * stream, because that path un-predicts the rows itself.
+     */
+    protected bool $applyStreamPredictor = true;
+
+    /**
      * Array of PDF objects.
      *
      * @var array<string, array<int, RawObjectArray>>
@@ -126,6 +140,11 @@ abstract class RawObject
         // \x0D carriage return (CR)
         // \x20 space (SP)
         $offset += \strspn($this->pdfdata, "\x00\x09\x0a\x0c\x0d\x20", $offset);
+        // stop if we reached the end of the (possibly truncated/malformed) data
+        if ($offset >= \strlen($this->pdfdata)) {
+            return ['', '', $offset];
+        }
+
         // get first char
         $char = $this->pdfdata[$offset];
         if ($char === '%') { // \x25 PERCENT SIGN
@@ -347,6 +366,8 @@ abstract class RawObject
                 && ($matches[0] ?? null) !== null
             ) {
                 $offset += \strlen($matches[0]);
+                // record where the stream payload starts (used for length-aware extraction)
+                $this->streamDataStart = $offset;
                 if (
                     \preg_match(
                         '/(endstream)[\x09\x0a\x0c\x0d\x20]/isU',

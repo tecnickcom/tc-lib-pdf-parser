@@ -86,7 +86,7 @@ class XrefTest extends TestCase
         $this->assertSame(9, $decoded[0][0]);
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Unknownn PNG predictor');
+        $this->expectExceptionMessageIsOrContains('Unknownn PNG predictor');
         $decoded = [];
         $parser->pngUnpredictorPublic([[9, 1]], $decoded, 1, [0]);
     }
@@ -328,7 +328,7 @@ class XrefTest extends TestCase
         ]);
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Invalid xref stream Index array: expected even number of values');
+        $this->expectExceptionMessageIsOrContains('Invalid xref stream Index array: expected even number of values');
         $parser->decodeXrefStreamPublic(100, ['xref' => []]);
     }
 
@@ -362,7 +362,7 @@ class XrefTest extends TestCase
         ]);
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Invalid xref stream row count: expected 3 rows from Index, got 2');
+        $this->expectExceptionMessageIsOrContains('Invalid xref stream row count: expected 3 rows from Index, got 2');
         $parser->decodeXrefStreamPublic(100, ['xref' => []]);
     }
 
@@ -384,7 +384,7 @@ class XrefTest extends TestCase
         $parser->setPdfDataPublic("%PDF-1.7\nNo xref markers here");
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Unable to find startxref (1)');
+        $this->expectExceptionMessageIsOrContains('Unable to find startxref (1)');
         $parser->getXrefDataPublic();
     }
 
@@ -527,7 +527,7 @@ class XrefTest extends TestCase
         $parser->setPdfDataPublic("xref\r\n0 1\r\n0000000000 65535 f\r\n");
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Unable to find trailer');
+        $this->expectExceptionMessageIsOrContains('Unable to find trailer');
         $parser->decodeXrefPublic(0, ['xref' => []]);
     }
 
@@ -549,7 +549,7 @@ class XrefTest extends TestCase
         }
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('LOOP: this XRef offset has been already processed');
+        $this->expectExceptionMessageIsOrContains('LOOP: this XRef offset has been already processed');
         $parser->getXrefDataPublic(5, ['xref' => []]);
     }
 
@@ -620,7 +620,7 @@ class XrefTest extends TestCase
         $parser->setPdfDataPublic('%PDF-1.7\nbody without xref hints');
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Unable to find startxref (3)');
+        $this->expectExceptionMessageIsOrContains('Unable to find startxref (3)');
         $parser->getXrefDataPublic(5, ['xref' => []]);
     }
 
@@ -661,7 +661,7 @@ class XrefTest extends TestCase
         $parser->setStubRawObject(['numeric', [], 0]);
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Unable to find xref stream');
+        $this->expectExceptionMessageIsOrContains('Unable to find xref stream');
         $parser->decodeXrefStreamPublic(0, ['xref' => []]);
     }
 
@@ -751,7 +751,7 @@ class XrefTest extends TestCase
         ];
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Invalid xref stream row at index 2');
+        $this->expectExceptionMessageIsOrContains('Invalid xref stream row at index 2');
         $parser->processObjIndexesMapPublic($xref, [2 => 10], [[1, 20, 0]]);
     }
 
@@ -782,7 +782,7 @@ class XrefTest extends TestCase
         }
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage(
+        $this->expectExceptionMessageIsOrContains(
             'Invalid xref stream entry for object 9: missing object stream reference for compressed entry',
         );
         $parser->processSingleObjIndexPublic($xref, 9, [2, 55]);
@@ -806,7 +806,7 @@ class XrefTest extends TestCase
         }
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Invalid xref stream Index array: values must be non-negative');
+        $this->expectExceptionMessageIsOrContains('Invalid xref stream Index array: values must be non-negative');
         $parser->parseXrefIndexSectionsPublic(['[', [['numeric', '-1', 0], ['numeric', '1', 0]], 0]);
     }
 
@@ -842,7 +842,9 @@ class XrefTest extends TestCase
         ]);
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Unable to determine xref stream Index coverage: missing Index and Size');
+        $this->expectExceptionMessageIsOrContains(
+            'Unable to determine xref stream Index coverage: missing Index and Size',
+        );
         $parser->decodeXrefStreamPublic(100, ['xref' => []]);
     }
 
@@ -900,7 +902,7 @@ class XrefTest extends TestCase
         $parser = new XrefStreamHarness();
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessage('Invalid xref stream Index array: expected numeric values');
+        $this->expectExceptionMessageIsOrContains('Invalid xref stream Index array: expected numeric values');
         $parser->parseXrefIndexSectionsPublic(['[', [1 => ['numeric', '1', 0], 2 => ['numeric', '2', 0]], 0]);
     }
 
