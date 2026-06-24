@@ -17,7 +17,6 @@
 namespace Test;
 
 use Com\Tecnick\Pdf\Parser\Exception as PPException;
-use PHPUnit\Framework\TestCase;
 
 /**
  * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
@@ -32,7 +31,7 @@ class ParserProcessingTest extends TestCase
         $parser = new ParserHarness();
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessageIsOrContains('Empty PDF data.');
+        $this->expectExceptionMessageContains('Empty PDF data.');
         $parser->parse('');
     }
 
@@ -44,7 +43,7 @@ class ParserProcessingTest extends TestCase
         $parser = new ParserHarness();
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessageIsOrContains('Invalid PDF data: missing %PDF header.');
+        $this->expectExceptionMessageContains('Invalid PDF data: missing %PDF header.');
         $parser->parse('not a pdf');
     }
 
@@ -132,7 +131,7 @@ class ParserProcessingTest extends TestCase
         $parser->setPdfDataPublic("%PDF-1.7\n1 0 obj\nendobj\n");
 
         $this->expectException(PPException::class);
-        $this->expectExceptionMessageIsOrContains('Invalid object reference:');
+        $this->expectExceptionMessageContains('Invalid object reference:');
         $parser->callParentGetIndirectObject('invalid', 0, true);
     }
 
