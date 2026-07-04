@@ -197,6 +197,8 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
         // get array of object content
         $objdata = [];
         $idx = 0; // object main index
+        /** @var RawObjectArray|null $prevElement previously parsed element (null on first iteration) */
+        $prevElement = null;
         do {
             $oldoffset = $offset;
 
@@ -204,7 +206,6 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
             $offset = $element[2];
             // capture the stream payload start before any nested tokenization can clobber it
             $streamDataStart = $this->streamDataStart;
-            $prevElement = $objdata[$idx - 1] ?? null;
             // decode stream using stream's dictionary information
             if (
                 $element[0] === 'stream'
@@ -229,6 +230,7 @@ class Parser extends \Com\Tecnick\Pdf\Parser\Process\Xref
             }
 
             $objdata[$idx] = $element;
+            $prevElement = $element;
             ++$idx;
         } while ($element[0] !== 'endobj' && (int) $offset !== (int) $oldoffset);
 
