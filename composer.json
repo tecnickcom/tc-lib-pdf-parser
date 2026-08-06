@@ -25,6 +25,7 @@
     ],
     "require": {
         "php": ">=8.2",
+        "ext-pcre": "*",
         "tecnickcom/tc-lib-pdf-filter": "^2.10"
     },
     "minimum-stability": "stable",
