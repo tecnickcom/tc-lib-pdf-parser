@@ -1,10 +1,13 @@
 name: check
 
-env:
-  XDEBUG_MODE: coverage
 
 permissions:
   contents: read
+
+# Cancel superseded pull-request runs instead of letting them finish.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 on:
   push:
@@ -35,7 +38,7 @@ jobs:
               with:
                   php-version: ${{ matrix.php-version }}
                   coverage: ${{ matrix.coverage-extension }}
-                  extensions: bcmath, curl, date, gd, hash, imagick, json, mbstring, openssl, pcre, zlib
+                  extensions: bcmath, curl, date, gd, hash, imagick, intl, json, mbstring, openssl, pcre, zlib
                   ini-values: display_errors=on, error_reporting=-1, zend.assertions=1
             - name: List php modules
               run: php -m
@@ -45,7 +48,7 @@ jobs:
               uses: actions/cache@v6
               with:
                   path: ~/.composer/cache/
-                  key: composer-cache
+                  key: composer-cache-${{ matrix.os }}
             - name: Install dependencies
               env:
                 GH_TOKEN: ${{ github.token }}
