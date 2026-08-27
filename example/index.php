@@ -22,10 +22,10 @@ require __DIR__ . '/../vendor/autoload.php';
 // autoloader when using RPM or DEB package installation
 //require ('/usr/share/php/Com/Tecnick/Pdf/Parser/autoload.php');
 
-$filename = '../resources/test/example_036.pdf';
+$filename = __DIR__ . '/../resources/test/example_036.pdf';
 $rawdata = \file_get_contents($filename);
 if ($rawdata === false) {
-    \die('Unable to get the content of the file: ' . $filename);
+    exit('Unable to get the content of the file: ' . $filename);
 }
 
 // configuration parameters for parser
