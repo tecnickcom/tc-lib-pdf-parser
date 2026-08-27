@@ -5,7 +5,7 @@
  *
  * @since     2011-05-23
  * @category  Library
- * @package   Pdfparser
+ * @package   PdfParser
  * @author    Nicola Asuni <info@tecnick.com>
  * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
  * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE)
@@ -18,6 +18,9 @@ namespace Test;
 
 use Com\Tecnick\Pdf\Parser\Exception as PPException;
 
+/**
+ * Tests for the cross-reference processing methods, called directly on a harness.
+ */
 class XrefTest extends TestCase
 {
     /**
@@ -47,47 +50,6 @@ class XrefTest extends TestCase
         $this->assertSame(6, $obj_num);
         $this->assertSame(42, $xref['xref']['3_0'] ?? null);
         $this->assertSame('7_0_4', $xref['xref']['4_0'] ?? null);
-    }
-
-    /**
-     * @throws \Com\Tecnick\Pdf\Parser\Exception
-     */
-    public function testPngUnpredictorDecodesAndRejectsUnknownPredictor(): void
-    {
-        $parser = new XrefStreamHarness();
-
-        $decoded = [];
-        $parser->pngUnpredictorPublic([[0, 10]], $decoded, 1, [0]);
-        if (!isset($decoded[0][0])) {
-            $this->fail('Decoded first row value is missing.');
-        }
-        $this->assertSame(10, $decoded[0][0]);
-
-        $decoded = [];
-        $parser->pngUnpredictorPublic([[1, 5]], $decoded, 1, [0]);
-        if (!isset($decoded[0][0])) {
-            $this->fail('Decoded first row value is missing.');
-        }
-        $this->assertSame(5, $decoded[0][0]);
-
-        $decoded = [];
-        $parser->pngUnpredictorPublic([[2, 3]], $decoded, 1, [4]);
-        if (!isset($decoded[0][0])) {
-            $this->fail('Decoded first row value is missing.');
-        }
-        $this->assertSame(7, $decoded[0][0]);
-
-        $decoded = [];
-        $parser->pngUnpredictorPublic([[4, 8]], $decoded, 1, [1]);
-        if (!isset($decoded[0][0])) {
-            $this->fail('Decoded first row value is missing.');
-        }
-        $this->assertSame(9, $decoded[0][0]);
-
-        $this->expectException(PPException::class);
-        $this->expectExceptionMessageContains('Unknown PNG predictor');
-        $decoded = [];
-        $parser->pngUnpredictorPublic([[9, 1]], $decoded, 1, [0]);
     }
 
     /**
@@ -137,7 +99,8 @@ class XrefTest extends TestCase
      */
     public function testDecodeXrefStreamParsesRowsAndTrailer(): void
     {
-        $stream_data = \pack('C*', 0, 1, 10, 0, 0, 2, 5, 1);
+        // the stub returns the payload as already decoded by the filter layer (predictor reversed)
+        $stream_data = \pack('C*', 1, 10, 0, 2, 5, 1);
 
         $parser = new XrefHarness();
         $parser->setStubRawObject(['objref', '5_0', 0]);
@@ -181,37 +144,30 @@ class XrefTest extends TestCase
     {
         $stream_data = \pack(
             'C*',
-            0,
             1,
             0,
             0,
             30,
-            0,
             1,
             0,
             0,
             31,
-            0,
             1,
             0,
             0,
             32,
-            0,
             1,
             0,
             0,
             33,
-            0,
             1,
             0,
             0,
             34,
-            0,
             1,
             0,
             0,
             35,
-            0,
             1,
             0,
             0,
@@ -269,7 +225,7 @@ class XrefTest extends TestCase
      */
     public function testDecodeXrefStreamFallsBackToSizeWhenIndexIsMissing(): void
     {
-        $stream_data = \pack('C*', 0, 1, 0, 0, 20, 0, 1, 0, 0, 21);
+        $stream_data = \pack('C*', 1, 0, 0, 20, 1, 0, 0, 21);
 
         $parser = new XrefHarness();
         $parser->setStubRawObject(['objref', '5_0', 0]);
@@ -302,7 +258,7 @@ class XrefTest extends TestCase
      */
     public function testDecodeXrefStreamRejectsOddIndexArrayLength(): void
     {
-        $stream_data = \pack('C*', 0, 1, 0, 0, 20);
+        $stream_data = \pack('C*', 1, 0, 0, 20);
 
         $parser = new XrefHarness();
         $parser->setStubRawObject(['objref', '5_0', 0]);
@@ -336,7 +292,7 @@ class XrefTest extends TestCase
      */
     public function testDecodeXrefStreamRejectsRowCountMismatchAgainstIndexCoverage(): void
     {
-        $stream_data = \pack('C*', 0, 1, 0, 0, 20, 0, 1, 0, 0, 21);
+        $stream_data = \pack('C*', 1, 0, 0, 20, 1, 0, 0, 21);
 
         $parser = new XrefHarness();
         $parser->setStubRawObject(['objref', '5_0', 0]);
@@ -410,38 +366,6 @@ class XrefTest extends TestCase
         $this->assertSame([], $xref['xref']);
     }
 
-    /**
-     * @throws \Com\Tecnick\Pdf\Parser\Exception
-     */
-    public function testPngUnpredictorCoversAveragePredictor(): void
-    {
-        $parser = new XrefStreamHarness();
-        $decoded = [];
-
-        $parser->pngUnpredictorPublic([[3, 4]], $decoded, 1, [2]);
-
-        if (!isset($decoded[0][0])) {
-            $this->fail('Decoded first row value is missing.');
-        }
-
-        $this->assertSame(5, $decoded[0][0]);
-    }
-
-    public function testMinDistanceCoversAllOutcomeBranches(): void
-    {
-        $parser = new XrefStreamHarness();
-        $ddata = [[0]];
-
-        $parser->minDistancePublic($ddata, 0, 5, 0, [7, 2, 0]);
-        $this->assertSame(12, $ddata[0][0] ?? null);
-
-        $parser->minDistancePublic($ddata, 0, 5, 0, [10, 3, 9]);
-        $this->assertSame(8, $ddata[0][0] ?? null);
-
-        $parser->minDistancePublic($ddata, 0, 5, 0, [0, 10, 4]);
-        $this->assertSame(9, $ddata[0][0] ?? null);
-    }
-
     public function testProcessXrefPrevAndDecodeParmsHandleInvalidInput(): void
     {
         $parser = new XrefStreamHarness();
@@ -453,19 +377,38 @@ class XrefTest extends TestCase
         $parser->processXrefPrevPublic(['numeric', '17', 0], $prevxref);
         $this->assertSame(17, $prevxref);
 
-        $columns = 9;
-        $predictor = 3;
-        $parser->processXrefDecodeParmsPublic(['name', 'x', 0], $columns, $predictor);
-        $this->assertSame(9, $columns);
-        $this->assertSame(3, $predictor);
+        $state = [
+            'index_sections' => null,
+            'prevxref' => null,
+            'predictor' => 3,
+            'columns' => 9,
+            'colors' => 1,
+            'bits' => 8,
+            'size' => null,
+            'valid_crs' => false,
+        ];
+        $parser->processXrefDecodeParmsPublic(['name', 'x', 0], $state);
+        $this->assertSame(9, $state['columns']);
+        $this->assertSame(3, $state['predictor']);
 
-        $parser->processXrefDecodeParmsPublic(
-            ['<<', [['/', 'Columns', 0], ['numeric', '-5', 0], ['/', 'Predictor', 0], ['numeric', '12', 0]], 0],
-            $columns,
-            $predictor,
-        );
-        $this->assertSame(0, $columns);
-        $this->assertSame(12, $predictor);
+        $parser->processXrefDecodeParmsPublic([
+            '<<',
+            [
+                ['/',       'Columns',          0],
+                ['numeric', '-5',               0],
+                ['/',       'Predictor',        0],
+                ['numeric', '12',               0],
+                ['/',       'Colors',           0],
+                ['numeric', '3',                0],
+                ['/',       'BitsPerComponent', 0],
+                ['numeric', '16',               0],
+            ],
+            0,
+        ], $state);
+        $this->assertSame(0, $state['columns']);
+        $this->assertSame(12, $state['predictor']);
+        $this->assertSame(3, $state['colors']);
+        $this->assertSame(16, $state['bits']);
     }
 
     public function testProcessXrefTypeFtAndObjrefCoverTrailerBranches(): void
@@ -557,7 +500,7 @@ class XrefTest extends TestCase
      */
     public function testGetXrefDataFindsObjectStreamStartxrefFromOffset(): void
     {
-        $stream_data = \pack('C*', 0, 1, 9, 0);
+        $stream_data = \pack('C*', 1, 9, 0);
 
         $parser = new XrefHarness();
         $parser->setPdfDataPublic('AAAAA12 0 obj .... xref');
@@ -687,7 +630,7 @@ class XrefTest extends TestCase
      */
     public function testDecodeXrefStreamCallsGetXrefDataWhenPrevIsPresent(): void
     {
-        $stream_data = \pack('C*', 0, 1, 9, 0);
+        $stream_data = \pack('C*', 1, 9, 0);
 
         $parser = new class() extends XrefHarness {
             public int $capturedOffset = -1;
@@ -924,6 +867,8 @@ class XrefTest extends TestCase
             'prevxref' => null,
             'predictor' => 0,
             'columns' => 0,
+            'colors' => 1,
+            'bits' => 8,
             'size' => null,
             'valid_crs' => false,
         ];

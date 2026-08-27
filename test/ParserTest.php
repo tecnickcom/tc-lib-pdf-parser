@@ -5,7 +5,7 @@
  *
  * @since     2011-05-23
  * @category  Library
- * @package   Pdfparser
+ * @package   PdfParser
  * @author    Nicola Asuni <info@tecnick.com>
  * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
  * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE)
@@ -21,15 +21,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Filter Test
- *
- * @since     2011-05-23
- * @category  Library
- * @package   PdfParser
- * @author    Nicola Asuni <info@tecnick.com>
- * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
- * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE)
- * @link      https://github.com/tecnickcom/tc-lib-pdf-parser
+ * Tests that parse full PDF documents.
  */
 class ParserTest extends TestCase
 {
@@ -55,16 +47,16 @@ class ParserTest extends TestCase
     public static function getParseProvider(): array
     {
         return [
-            ['resources/test/example_005.pdf', '510a5ea860470dae0781f4bd8d5eb250'],
-            ['resources/test/example_036.pdf', '2869501cf41a4c4a0402c00832329e25'],
-            ['resources/test/example_046.pdf', 'cfaee514b9c09aa282b4e2a8f0061a3d'],
+            ['resources/test/example_005.pdf', 'ad9d3e543c8fafa0dc22c2c1f071abf5'],
+            ['resources/test/example_036.pdf', '1ef46dbe33d3c916602e9fbaecf922e8'],
+            ['resources/test/example_046.pdf', 'e80dd3c4a96dc85fdf3b78165898a071'],
         ];
     }
 
     /**
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
-    public function testParseHandlesMultiRangeXrefIndexRegression(): void
+    public function testParseHandlesMultiRangeXrefIndex(): void
     {
         $parser = new Parser(['ignore_filter_errors' => true]);
         $data = $parser->parse($this->buildMultiRangeXrefIndexPdf());
@@ -113,7 +105,7 @@ class ParserTest extends TestCase
             $bytes[] = $offset & 0xff;
         }
 
-        $stream = \pack('C*', ...$bytes);
+        $stream = (string) \gzcompress(\pack('C*', ...$bytes));
         $streamLen = \strlen($stream);
         $xrefBody =
             '<< /Type /XRef'
@@ -123,6 +115,7 @@ class ParserTest extends TestCase
             . ' /W [1 3 0]'
             . ' /Length '
             . $streamLen
+            . ' /Filter /FlateDecode'
             . ' /DecodeParms << /Columns 4 /Predictor 12 >>'
             . " >>\nstream\n"
             . $stream

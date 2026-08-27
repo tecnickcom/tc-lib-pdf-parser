@@ -5,7 +5,7 @@
  *
  * @since     2011-05-23
  * @category  Library
- * @package   Pdfparser
+ * @package   PdfParser
  * @author    Nicola Asuni <info@tecnick.com>
  * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
  * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE)
@@ -19,6 +19,8 @@ namespace Test;
 use Com\Tecnick\Pdf\Parser\Process\XrefStream;
 
 /**
+ * XrefStream exposing its protected methods.
+ *
  * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
  */
 class XrefStreamHarness extends XrefStream
@@ -106,37 +108,28 @@ class XrefStreamHarness extends XrefStream
         return $this->buildXrefObjectNumbers($indexSections);
     }
 
-    /**
-     * @param array<int, array<int, int>> $sdata
-     * @param array<int, array<int, int>> $ddata
-     * @param array<int, int>             $prev_row
-     *
-     * @throws \Com\Tecnick\Pdf\Parser\Exception
-     */
-    public function pngUnpredictorPublic(array $sdata, array &$ddata, int $columns, array $prev_row): void
-    {
-        $this->pngUnpredictor($sdata, $ddata, $columns, $prev_row);
-    }
-
-    /**
-     * @param array<int, array<int, int>> $ddata
-     * @param array{0:int, 1:int, 2:int}  $rows
-     */
-    public function minDistancePublic(array &$ddata, int $key, int $row_value, int $jdx, array $rows): void
-    {
-        $this->minDistance($ddata, $key, $row_value, $jdx, $rows);
-    }
-
     /** @param RawObjectArray|null $next */
     public function processXrefPrevPublic(?array $next, ?int &$prevxref): void
     {
         $this->processXrefPrev($next, $prevxref);
     }
 
-    /** @param RawObjectArray|null $next */
-    public function processXrefDecodeParmsPublic(?array $next, int &$columns, int &$predictor): void
+    /**
+     * @param RawObjectArray|null $next
+     * @param array{
+     *      index_sections: array<int, array{0:int, 1:int}>|null,
+     *      prevxref: int|null,
+     *      predictor: int,
+     *      columns: int,
+     *      colors: int,
+     *      bits: int,
+     *      size: int|null,
+     *      valid_crs: bool
+     * } $state
+     */
+    public function processXrefDecodeParmsPublic(?array $next, array &$state): void
     {
-        $this->processXrefDecodeParms($next, $columns, $predictor);
+        $this->processXrefDecodeParms($next, $state);
     }
 
     /**
@@ -180,6 +173,8 @@ class XrefStreamHarness extends XrefStream
      *      prevxref: int|null,
      *      predictor: int,
      *      columns: int,
+     *      colors: int,
+     *      bits: int,
      *      size: int|null,
      *      valid_crs: bool
      * } $state

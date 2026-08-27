@@ -5,7 +5,7 @@
  *
  * @since     2011-05-23
  * @category  Library
- * @package   Pdfparser
+ * @package   PdfParser
  * @author    Nicola Asuni <info@tecnick.com>
  * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
  * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE)
@@ -19,6 +19,9 @@ namespace Test;
 use Com\Tecnick\Pdf\Parser\Exception as PPException;
 
 /**
+ * Tests for the parsing, tokenization and stream decoding methods, called directly
+ * on a harness.
+ *
  * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
  */
 class ParserProcessingTest extends TestCase
@@ -138,14 +141,27 @@ class ParserProcessingTest extends TestCase
     /**
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
-    public function testParentIndirectObjectReturnsEmptyResultWhenTargetIsMissing(): void
+    public function testParentIndirectObjectReturnsNullObjectWhenTargetIsMissing(): void
     {
         $parser = new ParserHarness();
         $parser->setPdfDataPublic("%PDF-1.7\n");
 
         $obj = $parser->callParentGetIndirectObject('1_0', 0, true);
 
-        $this->assertSame([], $obj);
+        // a reference to an undefined object resolves to the null object
+        $this->assertSame([['null', 'null', 1]], $obj);
+    }
+
+    /**
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testParentIndirectObjectReturnsNullObjectWhenOffsetIsOutOfRange(): void
+    {
+        $parser = new ParserHarness();
+        $parser->setPdfDataPublic("%PDF-1.7\n1 0 obj\nendobj\n");
+
+        $this->assertSame([['null', 'null', 9999]], $parser->callParentGetIndirectObject('1_0', 9999, true));
+        $this->assertSame([['null', 'null', -1]], $parser->callParentGetIndirectObject('1_0', -1, true));
     }
 
     /**
@@ -296,6 +312,13 @@ class ParserProcessingTest extends TestCase
 
         $this->assertSame([], $parser->getDecodeParmsPublic([['/', 'DecodeParms', 0]], 0));
 
+        // a DecodeParms value that is neither a dictionary nor an array yields no parameters
+        $scalar = [
+            ['/',       'DecodeParms', 0],
+            ['numeric', '5',           0],
+        ];
+        $this->assertSame([], $parser->getDecodeParmsPublic($scalar, 0));
+
         $dict = [
             ['/', 'DecodeParms', 0],
             [
@@ -304,7 +327,7 @@ class ParserProcessingTest extends TestCase
                     ['/', 'Columns', 0],
                     ['numeric', '5', 0],
                     ['/', 'EarlyChange', 0],
-                    ['true', 'true', 0],
+                    ['boolean', 'true', 0],
                     ['/', 'FilterName', 0],
                     ['/', 'FlateDecode', 0],
                     ['/', 'Text', 0],
@@ -335,10 +358,10 @@ class ParserProcessingTest extends TestCase
                     [
                         '<<',
                         [
-                            ['/', 'Rows', 0],
-                            ['numeric', '2', 0],
-                            ['/', 'Enabled', 0],
-                            ['false', 'false', 0],
+                            ['/',       'Rows',    0],
+                            ['numeric', '2',       0],
+                            ['/',       'Enabled', 0],
+                            ['boolean', 'false',   0],
                         ],
                         0,
                     ],
@@ -347,10 +370,14 @@ class ParserProcessingTest extends TestCase
             ],
         ];
 
+        // an array of DecodeParms yields one entry per filter, empty where none applies
         $this->assertSame(
             [
-                'Rows' => 2,
-                'Enabled' => false,
+                [],
+                [
+                    'Rows' => 2,
+                    'Enabled' => false,
+                ],
             ],
             $parser->getDecodeParmsPublic($array, 0),
         );
@@ -822,18 +849,14 @@ class ParserProcessingTest extends TestCase
     }
 
     /**
-     * Regression: processAngular() must bail out when getRawObject() fails
-     * to advance $offset, rather than spinning forever and exhausting PHP
-     * memory. Without the guard, the inner do-while loop accumulates
-     * identical zero-length tokens at the same offset until OOM.
+     * processAngular() must stop collecting elements when getRawObject() does not
+     * advance the offset.
      *
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function testProcessAngularBailsOnNonAdvancingByte(): void
     {
-        // `<<` then `~` — a byte that processDefault() cannot consume — and
-        // no `>>` terminator. Before the fix this hangs / OOMs in
-        // RawObject::processAngular() at the inner do-while loop.
+        // '<<' then '~', a byte that processDefault() cannot consume, with no '>>' terminator
         $parser = new ParserHarness();
         $parser->setPdfDataPublic('<<~');
 
@@ -842,14 +865,12 @@ class ParserProcessingTest extends TestCase
         $this->assertIsArray($element);
         $this->assertSame('<<', $element[0]);
         $this->assertIsArray($element[1]);
-        // The non-advancing guard must short-circuit within a single
-        // iteration; the trailing array_pop then leaves $objval empty.
         $this->assertLessThan(5, \count($element[1]));
     }
 
     /**
-     * Regression: processBracket() must bail out on a non-advancing parse,
-     * for the same reasons as the dictionary loop above.
+     * processBracket() must stop collecting elements when getRawObject() does not
+     * advance the offset.
      *
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
@@ -907,7 +928,8 @@ class ParserProcessingTest extends TestCase
 
         $hex = $parser->callParentGetRawObject(0);
         $this->assertSame('<', $hex[0]);
-        $this->assertSame(' 4A 4B ', $hex[1]);
+        // white space inside a hexadecimal string is ignored (PDF 32000-1 7.3.4.3)
+        $this->assertSame('4A4B', $hex[1]);
 
         $parser = new ParserHarness();
         $parser->setPdfDataPublic('<GG>');

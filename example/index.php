@@ -1,15 +1,17 @@
 <?php
 
+declare(strict_types=1);
+
 /**
  * index.php
  *
- * @since       2015-02-21
- * @category    Library
- * @package     PdfParser
- * @author      Nicola Asuni <info@tecnick.com>
- * @copyright   2011-2026 Nicola Asuni - Tecnick.com LTD
- * @license     https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE)
- * @link        https://github.com/tecnickcom/tc-lib-pdf-parser
+ * @since     2015-02-21
+ * @category  Library
+ * @package   PdfParser
+ * @author    Nicola Asuni <info@tecnick.com>
+ * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
+ * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE)
+ * @link      https://github.com/tecnickcom/tc-lib-pdf-parser
  *
  * This file is part of tc-lib-pdf-parser software library.
  */

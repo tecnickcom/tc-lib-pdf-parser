@@ -5,7 +5,7 @@
  *
  * @since     2011-05-23
  * @category  Library
- * @package   Pdfparser
+ * @package   PdfParser
  * @author    Nicola Asuni <info@tecnick.com>
  * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
  * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE)
@@ -19,6 +19,8 @@ namespace Test;
 use Com\Tecnick\Pdf\Parser\Process\Xref;
 
 /**
+ * Xref exposing its protected methods and allowing their inputs to be stubbed.
+ *
  * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
  */
 class XrefHarness extends Xref

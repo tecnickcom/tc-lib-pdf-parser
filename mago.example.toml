@@ -4,7 +4,7 @@ php-version = "8.2.0"
 
 [source]
 workspace = "."
-paths = ["src", "resources/autoload.php"]
+paths = ["src", "example"]
 includes = ["vendor"]
 excludes = []
 
@@ -32,6 +32,9 @@ no-else-clause = { enabled = false }
 no-empty = { enabled = true }
 too-many-methods = { enabled = false }
 no-isset = { enabled = true, allow-array-checks = true }
+
+# The examples dump their results to the page on purpose.
+no-debug-symbols = { enabled = false }
 
 [analyzer]
 plugins = []

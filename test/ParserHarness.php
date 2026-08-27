@@ -5,7 +5,7 @@
  *
  * @since     2011-05-23
  * @category  Library
- * @package   Pdfparser
+ * @package   PdfParser
  * @author    Nicola Asuni <info@tecnick.com>
  * @copyright 2011-2026 Nicola Asuni - Tecnick.com LTD
  * @license   https://www.gnu.org/copyleft/lesser.html GNU-LGPL v3 (see LICENSE)
@@ -19,6 +19,8 @@ namespace Test;
 use Com\Tecnick\Pdf\Parser\Parser;
 
 /**
+ * Parser exposing its protected methods and allowing their inputs to be stubbed.
+ *
  * @phpstan-import-type RawObjectArray from \Com\Tecnick\Pdf\Parser\Process\RawObject
  */
 class ParserHarness extends Parser
@@ -159,7 +161,7 @@ class ParserHarness extends Parser
     /**
      * @param array<int, RawObjectArray> $sdic
      *
-     * @return array<string, mixed>
+     * @return array<array-key, mixed>
      *
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
@@ -169,8 +171,8 @@ class ParserHarness extends Parser
     }
 
     /**
-     * @param array<string> $filters
-     * @param array<string, mixed> $params
+     * @param array<string>           $filters
+     * @param array<array-key, mixed> $params
      *
      * @return array{0:string,1:array<string>}
      *
@@ -191,6 +193,19 @@ class ParserHarness extends Parser
     public function decodeStreamPublic(array $sdic, string $stream): array
     {
         return $this->decodeStream($sdic, $stream);
+    }
+
+    /**
+     * @param array<int, RawObjectArray> $sdic
+     *
+     * @param-out string $stream
+     * @param-out int    $slength
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function getDeclaredStreamLengthPublic(string &$stream, int &$slength, array $sdic, int $key): void
+    {
+        $this->getDeclaredStreamLength($stream, $slength, $sdic, $key);
     }
 
     /**
@@ -219,9 +234,8 @@ class ParserHarness extends Parser
     }
 
     /**
-     * Test-only: bypass the queue override below and run the real inherited
-     * getRawObject against `$this->pdfdata`. Lets tests exercise the real
-     * processAngular / processBracket loops with arbitrary byte input.
+     * Run the inherited getRawObject() against $this->pdfdata, bypassing the queue
+     * override.
      *
      * @return RawObjectArray
      *
