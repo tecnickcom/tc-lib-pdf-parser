@@ -37,7 +37,6 @@ class XrefTest extends TestCase
             ],
             'xref' => [],
         ];
-        $obj_num = 3;
         $sdata = [
             [1, 42, 0],
             [2, 7, 4],
@@ -45,11 +44,11 @@ class XrefTest extends TestCase
         ];
 
         $parser = new XrefStreamHarness();
-        $parser->processObjIndexesPublic($xref, $obj_num, $sdata);
+        $parser->processObjIndexesMapPublic($xref, [3, 4, 5], $sdata);
 
-        $this->assertSame(6, $obj_num);
         $this->assertSame(42, $xref['xref']['3_0'] ?? null);
         $this->assertSame('7_0_4', $xref['xref']['4_0'] ?? null);
+        $this->assertArrayNotHasKey('5_0', $xref['xref']);
     }
 
     /**
@@ -103,7 +102,7 @@ class XrefTest extends TestCase
         $stream_data = \pack('C*', 1, 10, 0, 2, 5, 1);
 
         $parser = new XrefHarness();
-        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubRawObject(['obj', '5_0', 0]);
         $parser->setStubIndirectObject([
             [
                 '<<',
@@ -175,7 +174,7 @@ class XrefTest extends TestCase
         );
 
         $parser = new XrefHarness();
-        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubRawObject(['obj', '5_0', 0]);
         $parser->setStubIndirectObject([
             [
                 '<<',
@@ -228,7 +227,7 @@ class XrefTest extends TestCase
         $stream_data = \pack('C*', 1, 0, 0, 20, 1, 0, 0, 21);
 
         $parser = new XrefHarness();
-        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubRawObject(['obj', '5_0', 0]);
         $parser->setStubIndirectObject([
             [
                 '<<',
@@ -261,7 +260,7 @@ class XrefTest extends TestCase
         $stream_data = \pack('C*', 1, 0, 0, 20);
 
         $parser = new XrefHarness();
-        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubRawObject(['obj', '5_0', 0]);
         $parser->setStubIndirectObject([
             [
                 '<<',
@@ -295,7 +294,7 @@ class XrefTest extends TestCase
         $stream_data = \pack('C*', 1, 0, 0, 20, 1, 0, 0, 21);
 
         $parser = new XrefHarness();
-        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubRawObject(['obj', '5_0', 0]);
         $parser->setStubIndirectObject([
             [
                 '<<',
@@ -357,12 +356,9 @@ class XrefTest extends TestCase
             ],
             'xref' => [],
         ];
-        $obj_num = 9;
-
         $parser = new XrefStreamHarness();
-        $parser->processObjIndexesPublic($xref, $obj_num, [[9, 1, 2]]);
+        $parser->processObjIndexesMapPublic($xref, [9], [[9, 1, 2]]);
 
-        $this->assertSame(10, $obj_num);
         $this->assertSame([], $xref['xref']);
     }
 
@@ -504,7 +500,7 @@ class XrefTest extends TestCase
 
         $parser = new XrefHarness();
         $parser->setPdfDataPublic('AAAAA12 0 obj .... xref');
-        $parser->setStubRawObject(['objref', '12_0', 0]);
+        $parser->setStubRawObject(['obj', '12_0', 0]);
         $parser->setStubIndirectObject([
             [
                 '<<',
@@ -608,6 +604,32 @@ class XrefTest extends TestCase
     }
 
     /**
+     * Only an object header can start a cross-reference stream: every other token type
+     * also carries a string value, so the value alone does not tell them apart.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDecodeXrefStreamThrowsWhenRawObjectIsNotAnObjectHeader(): void
+    {
+        foreach ([
+            ['',        '',       0],
+            ['numeric', '123456', 0],
+            ['objref',  '5_0',    0],
+            ['/',       'XRef',   0],
+        ] as $token) {
+            $parser = new XrefHarness();
+            $parser->setStubRawObject($token);
+
+            try {
+                $parser->decodeXrefStreamPublic(7, ['xref' => []]);
+                $this->fail('Expected a missing xref stream exception.');
+            } catch (PPException $exception) {
+                $this->assertSame('Unable to find xref stream at offset 7', $exception->getMessage());
+            }
+        }
+    }
+
+    /**
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
     public function testDecodeXrefStreamHandlesNonArrayDictionaryPayload(): void
@@ -615,7 +637,7 @@ class XrefTest extends TestCase
         $stream_data = \pack('C*', 0, 1, 9, 0);
 
         $parser = new XrefHarness();
-        $parser->setStubRawObject(['objref', '1_0', 0]);
+        $parser->setStubRawObject(['obj', '1_0', 0]);
         $parser->setStubIndirectObject([
             ['<<', 'not-array', 0],
             ['stream', $stream_data, 0, [$stream_data, []]],
@@ -647,7 +669,7 @@ class XrefTest extends TestCase
             }
         };
 
-        $parser->setStubRawObject(['objref', '1_0', 0]);
+        $parser->setStubRawObject(['obj', '1_0', 0]);
         $parser->setStubIndirectObject([
             [
                 '<<',
@@ -737,8 +759,18 @@ class XrefTest extends TestCase
     {
         $parser = new XrefStreamHarness();
 
-        $this->assertNull($parser->parseXrefIndexSectionsPublic(null));
-        $this->assertNull($parser->parseXrefIndexSectionsPublic(['[', 'oops', 0]));
+        // a declared Index that cannot be read is an error, not the default coverage
+        foreach ([null, ['[', 'oops', 0], ['objref', '4_0', 0], ['<<', [], 0]] as $unreadable) {
+            try {
+                $parser->parseXrefIndexSectionsPublic($unreadable);
+                $this->fail('Expected unreadable Index exception.');
+            } catch (PPException $exception) {
+                $this->assertSame(
+                    'Invalid xref stream Index array: expected an array of numeric values',
+                    $exception->getMessage(),
+                );
+            }
+        }
 
         try {
             $parser->parseXrefIndexSectionsPublic(['[', [['name', 'x', 0], ['numeric', '1', 0]], 0]);
@@ -768,7 +800,7 @@ class XrefTest extends TestCase
         $stream_data = \pack('C*', 1, 9, 0);
 
         $parser = new XrefHarness();
-        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubRawObject(['obj', '5_0', 0]);
         $parser->setStubIndirectObject([
             [
                 '<<',
@@ -796,7 +828,7 @@ class XrefTest extends TestCase
         $stream_data = \pack('C*', 1, 9, 0);
 
         $parser = new XrefHarness();
-        $parser->setStubRawObject(['objref', '5_0', 0]);
+        $parser->setStubRawObject(['obj', '5_0', 0]);
         $parser->setStubIndirectObject([
             [
                 '<<',

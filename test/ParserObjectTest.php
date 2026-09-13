@@ -17,6 +17,7 @@
 namespace Test;
 
 use Com\Tecnick\Pdf\Parser\Exception as PPException;
+use Com\Tecnick\Pdf\Parser\LimitException as PPLimitException;
 use Com\Tecnick\Pdf\Parser\Parser;
 use PHPUnit\Framework\TestCase;
 
@@ -184,6 +185,171 @@ class ParserObjectTest extends TestCase
     }
 
     /**
+     * Reaching the resolution depth limit must be reported as a limit warning.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testResolutionDepthLimitIsReported(): void
+    {
+        $parser = new Parser(['ignore_filter_errors' => true, 'max_resolution_depth' => 4]);
+        $parser->parse($this->buildLengthChainPdf(20));
+
+        $warnings = $parser->getLimitWarnings();
+
+        $this->assertCount(1, $warnings);
+        $this->assertStringContainsString('indirect object resolution depth limit (4)', $warnings[0] ?? '');
+        $this->assertStringContainsString('first at object ', $warnings[0] ?? '');
+    }
+
+    /**
+     * A resolution chain shorter than the configured limit must not report anything.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testResolutionWithinTheLimitReportsNoWarning(): void
+    {
+        $parser = new Parser(['ignore_filter_errors' => true, 'max_resolution_depth' => 512]);
+        $parser->parse($this->buildLengthChainPdf(20));
+
+        $this->assertSame([], $parser->getLimitWarnings());
+    }
+
+    /**
+     * A resolution depth limit below one must be clamped to one, not disable the guard.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testResolutionDepthLimitBelowOneIsClampedToOne(): void
+    {
+        $parser = new Parser(['ignore_filter_errors' => true, 'max_resolution_depth' => 0]);
+        $parser->parse($this->buildLengthChainPdf(20));
+
+        $warnings = $parser->getLimitWarnings();
+
+        $this->assertCount(1, $warnings);
+        $this->assertStringContainsString('indirect object resolution depth limit (1)', $warnings[0] ?? '');
+    }
+
+    /**
+     * A negative resolution depth limit must be clamped to one as well.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testNegativeResolutionDepthLimitIsClampedToOne(): void
+    {
+        $parser = new Parser(['ignore_filter_errors' => true, 'max_resolution_depth' => -100]);
+        $parser->parse($this->buildLengthChainPdf(20));
+
+        $warnings = $parser->getLimitWarnings();
+
+        $this->assertCount(1, $warnings);
+        $this->assertStringContainsString('indirect object resolution depth limit (1)', $warnings[0] ?? '');
+    }
+
+    /**
+     * A reference cycle must be reported separately from a depth overflow.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testReferenceCycleIsReported(): void
+    {
+        $parser = new Parser(['ignore_filter_errors' => true]);
+        $parser->parse($this->buildPdf([
+            1 => '<< /Length 2 0 R >>' . "\nstream\nAAAA\nendstream",
+            2 => '<< /Length 1 0 R >>' . "\nstream\nBBBB\nendstream",
+        ]));
+
+        $warnings = $parser->getLimitWarnings();
+
+        $this->assertCount(1, $warnings);
+        $this->assertStringContainsString('reference cycle', $warnings[0] ?? '');
+    }
+
+    /**
+     * Strict mode must turn a depth overflow into a LimitException.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testStrictLimitsRaiseOnResolutionDepth(): void
+    {
+        $parser = new Parser([
+            'ignore_filter_errors' => true,
+            'max_resolution_depth' => 4,
+            'strict_limits' => true,
+        ]);
+
+        $this->expectException(PPLimitException::class);
+        $this->expectExceptionMessageMatches('/indirect object resolution depth limit \(4\)/');
+        $parser->parse($this->buildLengthChainPdf(20));
+    }
+
+    /**
+     * Strict mode must turn a reference cycle into a LimitException.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testStrictLimitsRaiseOnReferenceCycle(): void
+    {
+        $parser = new Parser(['ignore_filter_errors' => true, 'strict_limits' => true]);
+
+        $this->expectException(PPLimitException::class);
+        $this->expectExceptionMessageMatches('/reference cycle/');
+        $parser->parse($this->buildPdf([
+            1 => '<< /Length 2 0 R >>' . "\nstream\nAAAA\nendstream",
+            2 => '<< /Length 1 0 R >>' . "\nstream\nBBBB\nendstream",
+        ]));
+    }
+
+    /**
+     * A LimitException must remain catchable as the general parser exception.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testLimitExceptionExtendsTheParserException(): void
+    {
+        $parser = new Parser([
+            'ignore_filter_errors' => true,
+            'max_resolution_depth' => 4,
+            'strict_limits' => true,
+        ]);
+
+        $this->expectException(PPException::class);
+        $parser->parse($this->buildLengthChainPdf(20));
+    }
+
+    /**
+     * The recorded limit events must be reset between two parses of the same instance.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testLimitWarningsAreResetBetweenParses(): void
+    {
+        $parser = new Parser(['ignore_filter_errors' => true, 'max_resolution_depth' => 4]);
+
+        $parser->parse($this->buildLengthChainPdf(20));
+        $this->assertCount(1, $parser->getLimitWarnings());
+
+        $parser->parse($this->buildPdf([1 => '<< /Type /Catalog >>']));
+        $this->assertSame([], $parser->getLimitWarnings());
+    }
+
+    /**
+     * One event per kind must be kept, with the occurrence count and the first reference.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testRepeatedLimitEventsAreCountedInASingleWarning(): void
+    {
+        $parser = new Parser(['ignore_filter_errors' => true, 'max_resolution_depth' => 4]);
+        $parser->parse($this->buildLengthChainPdf(40));
+
+        $warnings = $parser->getLimitWarnings();
+
+        $this->assertCount(1, $warnings);
+        $this->assertMatchesRegularExpression('/ \d+ times, first at object /', $warnings[0] ?? '');
+    }
+
+    /**
      * A name in a value position of the /ObjStm dictionary must not be read as a key.
      *
      * @throws \Com\Tecnick\Pdf\Parser\Exception
@@ -197,6 +363,107 @@ class ParserObjectTest extends TestCase
         $this->assertArrayHasKey('4_0', $parsed);
         $this->assertSame('Catalog', $this->firstDictValue($parsed['3_0'] ?? []));
         $this->assertSame('Pages', $this->firstDictValue($parsed['4_0'] ?? []));
+    }
+
+    /**
+     * A reference held by a compressed object body must not be taken for a cycle.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testCompressedObjectBodyReferenceIsNotReportedAsACycle(): void
+    {
+        $parser = new Parser(['ignore_filter_errors' => true]);
+        // "1 0 R" is the object stream itself: the body must not be parsed as object 1
+        [, $parsed] = $parser->parse($this->buildObjectStreamPdf('', [
+            3 => "<< /Length 1 0 R >>\nstream\nAAAA\nendstream",
+            4 => '<< /Type /Pages >>',
+        ]));
+
+        $this->assertSame([], $parser->getLimitWarnings());
+        $this->assertArrayHasKey('3_0', $parsed);
+        $this->assertSame('Pages', $this->firstDictValue($parsed['4_0'] ?? []));
+    }
+
+    /**
+     * Strict mode must not raise on a compressed object body that holds a reference.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testCompressedObjectBodyReferenceDoesNotRaiseInStrictMode(): void
+    {
+        $parser = new Parser(['ignore_filter_errors' => true, 'strict_limits' => true]);
+        [, $parsed] = $parser->parse($this->buildObjectStreamPdf('', [
+            3 => "<< /Length 1 0 R >>\nstream\nAAAA\nendstream",
+            4 => '<< /Type /Pages >>',
+        ]));
+
+        $this->assertArrayHasKey('3_0', $parsed);
+    }
+
+    /**
+     * PDF 32000-1 7.3.10 separates the tokens of an object header with white space,
+     * which 7.2.3 defines as any non-empty run of NUL, HT, LF, FF, CR and SP.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testObjectHeaderAcceptsEveryWhiteSpaceSeparator(): void
+    {
+        foreach ([' ', '  ', "\n", "\r\n", "\t", " \r\n\t", "\x00"] as $separator) {
+            $header = '1' . $separator . '0' . $separator . 'obj';
+            $parser = new Parser();
+            [, $parsed] = $parser->parse($this->buildHeaderPdf($header));
+
+            $this->assertSame(
+                'Catalog',
+                $this->firstDictValue($parsed['1_0'] ?? []),
+                'separator: ' . \bin2hex($separator),
+            );
+        }
+    }
+
+    /**
+     * Either number of an object header may carry leading zeros.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testObjectHeaderAcceptsLeadingZeros(): void
+    {
+        $parser = new Parser();
+        [, $parsed] = $parser->parse($this->buildHeaderPdf('0001 000 obj'));
+
+        $this->assertSame('Catalog', $this->firstDictValue($parsed['1_0'] ?? []));
+    }
+
+    /**
+     * A header that belongs to another object, or that has no white space between its
+     * tokens, resolves to the null object.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testObjectHeaderOfAnotherObjectIsNotAccepted(): void
+    {
+        foreach (['2 0 obj', '1 1 obj', '1 0obj', '10 obj'] as $header) {
+            $parser = new Parser();
+            [, $parsed] = $parser->parse($this->buildHeaderPdf($header));
+
+            $this->assertSame('null', $parsed['1_0'][0][0] ?? null, 'header: ' . $header);
+        }
+    }
+
+    /**
+     * Build a single-object PDF whose object header is written verbatim.
+     *
+     * @param string $header Object header of object 1.
+     */
+    private function buildHeaderPdf(string $header): string
+    {
+        $pdf = "%PDF-1.7\n";
+        $offset = \strlen($pdf);
+        $pdf .= $header . "\n<< /Type /Catalog >>\nendobj\n";
+        $xrefOffset = \strlen($pdf);
+        $pdf .= "xref\n0 2\n0000000000 65535 f \n" . $this->xrefInUseEntry($offset);
+
+        return $pdf . "trailer\n<< /Size 2 /Root 1 0 R >>\nstartxref\n" . $xrefOffset . "\n%%EOF\n";
     }
 
     /**
@@ -241,13 +508,15 @@ class ParserObjectTest extends TestCase
     }
 
     /**
-     * Build a PDF holding one object stream with two compressed catalog-like objects.
+     * Build a PDF holding one object stream with two compressed objects numbered 3 and 4.
      *
-     * @param string $extraDict Extra entries appended to the /ObjStm dictionary.
+     * @param string             $extraDict Extra entries appended to the /ObjStm dictionary.
+     * @param array<int, string> $bodies    Bodies of the compressed objects, keyed by object number.
      */
-    private function buildObjectStreamPdf(string $extraDict = ''): string
-    {
-        $bodies = [3 => '<< /Type /Catalog >>', 4 => '<< /Type /Pages >>'];
+    private function buildObjectStreamPdf(
+        string $extraDict = '',
+        array $bodies = [3 => '<< /Type /Catalog >>', 4 => '<< /Type /Pages >>'],
+    ): string {
         $header = '';
         $payload = '';
         foreach ($bodies as $num => $body) {

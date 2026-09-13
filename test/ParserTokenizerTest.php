@@ -17,6 +17,7 @@
 namespace Test;
 
 use Com\Tecnick\Pdf\Parser\Exception as PPException;
+use Com\Tecnick\Pdf\Parser\LimitException as PPLimitException;
 use Com\Tecnick\Pdf\Parser\Parser;
 use PHPUnit\Framework\TestCase;
 
@@ -269,6 +270,91 @@ class ParserTokenizerTest extends TestCase
         $this->expectException(PPException::class);
         $this->expectExceptionMessageMatches('/Maximum object nesting depth exceeded/');
         (new Parser())->parse($document);
+    }
+
+    /**
+     * Excessive nesting must be reported with the dedicated limit exception.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testExcessiveNestingRaisesTheLimitException(): void
+    {
+        $depth = 1000;
+        $document = $this->buildSingleObjectPdf(\str_repeat('[', $depth) . \str_repeat(']', $depth));
+
+        $this->expectException(PPLimitException::class);
+        (new Parser())->parse($document);
+    }
+
+    /**
+     * A raised nesting limit must accept a document the default limit rejects.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testNestingLimitCanBeRaised(): void
+    {
+        $depth = 1000;
+        $document = $this->buildSingleObjectPdf(\str_repeat('[', $depth) . \str_repeat(']', $depth));
+
+        [, $objects] = (new Parser(['max_nesting_depth' => 2048]))->parse($document);
+
+        $this->assertSame('[', $objects['1_0'][0][0] ?? '');
+    }
+
+    /**
+     * A nesting limit below one must be clamped to one, not disable the guard.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testNestingLimitBelowOneIsClampedToOne(): void
+    {
+        $document = $this->buildSingleObjectPdf('<< /Key << /Nested 1 >> >>');
+
+        $this->expectException(PPLimitException::class);
+        $this->expectExceptionMessageMatches('/Maximum object nesting depth exceeded: 1/');
+        (new Parser(['max_nesting_depth' => 0]))->parse($document);
+    }
+
+    /**
+     * A negative nesting limit must be clamped to one as well.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testNegativeNestingLimitIsClampedToOne(): void
+    {
+        $document = $this->buildSingleObjectPdf('[ [ 1 ] ]');
+
+        $this->expectException(PPLimitException::class);
+        $this->expectExceptionMessageMatches('/Maximum object nesting depth exceeded: 1/');
+        (new Parser(['max_nesting_depth' => -100]))->parse($document);
+    }
+
+    /**
+     * A nesting limit of one must still accept a flat container.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testNestingLimitOfOneAcceptsAFlatContainer(): void
+    {
+        $document = $this->buildSingleObjectPdf('<< /Type /Catalog >>');
+
+        [, $objects] = (new Parser(['max_nesting_depth' => 0]))->parse($document);
+
+        $this->assertSame('<<', $objects['1_0'][0][0] ?? '');
+    }
+
+    /**
+     * A lowered nesting limit must reject a document the default limit accepts.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testNestingLimitCanBeLowered(): void
+    {
+        $document = $this->buildSingleObjectPdf(\str_repeat('[', 8) . \str_repeat(']', 8));
+
+        $this->expectException(PPLimitException::class);
+        $this->expectExceptionMessageMatches('/Maximum object nesting depth exceeded: 4/');
+        (new Parser(['max_nesting_depth' => 4]))->parse($document);
     }
 
     /**

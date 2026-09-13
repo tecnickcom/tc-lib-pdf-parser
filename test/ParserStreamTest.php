@@ -62,7 +62,8 @@ class ParserStreamTest extends TestCase
     }
 
     /**
-     * A declared length that does not line up with the real "endstream" is ignored.
+     * A declared length that does not line up with the real "endstream" is ignored,
+     * leaving the payload extracted as if no length had been declared.
      *
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
@@ -73,7 +74,39 @@ class ParserStreamTest extends TestCase
         $parser = new Parser(['decode_streams' => false]);
         [, $parsed] = $parser->parse($pdf);
 
+        $this->assertSame('plain', $this->rawStream($parsed['1_0'] ?? []));
+    }
+
+    /**
+     * A declared length that accounts for every extracted byte claims them all as
+     * payload, end-of-line included.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testDeclaredLengthCoveringTheEolKeepsIt(): void
+    {
+        $pdf = $this->buildPdf([1 => "<< /Length 6 >>\nstream\nplain\nendstream"]);
+
+        $parser = new Parser(['decode_streams' => false]);
+        [, $parsed] = $parser->parse($pdf);
+
         $this->assertSame("plain\n", $this->rawStream($parsed['1_0'] ?? []));
+    }
+
+    /**
+     * A declared length longer than the payload is ignored, and the end-of-line before
+     * "endstream" is still not part of the payload.
+     *
+     * @throws \Com\Tecnick\Pdf\Parser\Exception
+     */
+    public function testOversizedDeclaredLengthDropsTheTrailingEol(): void
+    {
+        $pdf = $this->buildPdf([1 => "<< /Length 99 >>\nstream\nplain\nendstream"]);
+
+        $parser = new Parser(['decode_streams' => false]);
+        [, $parsed] = $parser->parse($pdf);
+
+        $this->assertSame('plain', $this->rawStream($parsed['1_0'] ?? []));
     }
 
     /**

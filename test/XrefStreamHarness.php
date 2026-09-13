@@ -36,26 +36,6 @@ class XrefStreamHarness extends XrefStream
      *        },
      *        'xref': array<string, int|string>,
      *    } $xref
-     * @param array<int, array<int, int>> $sdata
-     *
-     * @throws \Com\Tecnick\Pdf\Parser\Exception
-     */
-    public function processObjIndexesPublic(array &$xref, int &$obj_num, array $sdata): void
-    {
-        $this->processObjIndexes($xref, $obj_num, $sdata);
-    }
-
-    /**
-     * @param array{
-     *        'trailer': array{
-     *            'encrypt'?: string,
-     *            'id': array<int, string>,
-     *            'info': string,
-     *            'root': string,
-     *            'size': int,
-     *        },
-     *        'xref': array<string, int|string>,
-     *    } $xref
      * @param array<int, int>             $objNumbers
      * @param array<int, array<int, int>> $sdata
      *
@@ -89,11 +69,11 @@ class XrefStreamHarness extends XrefStream
     /**
      * @param RawObjectArray|null $indexObj
      *
-     * @return array<int, array{0:int, 1:int}>|null
+     * @return array<int, array{0:int, 1:int}>
      *
      * @throws \Com\Tecnick\Pdf\Parser\Exception
      */
-    public function parseXrefIndexSectionsPublic(?array $indexObj): ?array
+    public function parseXrefIndexSectionsPublic(?array $indexObj): array
     {
         return $this->parseXrefIndexSections($indexObj);
     }
