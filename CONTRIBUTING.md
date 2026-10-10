@@ -204,4 +204,4 @@ Reference issues where relevant: `fix: correct X (closes #42)`.
 
 ## Questions?
 
-If you have a question that is not covered here, feel free to open a [GitHub Discussion](https://github.com/tecnickcom/tc-lib-pdf-parser/discussions) or contact the maintainer at [info@tecnick.com](mailto:info@tecnick.com).
+If you have a question that is not covered here, feel free to open a [GitHub Issue](https://github.com/tecnickcom/tc-lib-pdf-parser/issues) or contact the maintainer at [info@tecnick.com](mailto:info@tecnick.com).
