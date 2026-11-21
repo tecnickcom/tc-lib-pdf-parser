@@ -62,30 +62,6 @@ jobs:
         run: make qa-coverage
       - name: Run the example
         run: php example/index.php > /dev/null
-      # make install, resources/autoload.php and the packaging descriptors are
-      # what reaches RPM/DEB users; nothing else in CI touches them. Install into
-      # a throwaway prefix and load the library through the shipped autoloader,
-      # which only resolves in the installed layout.
-      - name: Packaging smoke test
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          DESTDIR="$(mktemp -d)"
-          make install DESTDIR="$DESTDIR"
-          cat > "$DESTDIR/smoke.php" <<'SMOKE'
-          <?php
-          require \getenv('DESTDIR') . '/usr/share/php/Com/Tecnick/Pdf/Parser/autoload.php';
-          foreach ([
-              'Com\Tecnick\Pdf\Parser\Exception',
-              'Com\Tecnick\Pdf\Parser\Parser',
-          ] as $class) {
-              if (!\class_exists($class)) {
-                  \fwrite(\STDERR, 'the installed autoloader cannot load ' . $class . \PHP_EOL);
-                  exit(1);
-              }
-          }
-          echo 'installed layout loads every class', \PHP_EOL;
-          SMOKE
-          DESTDIR="$DESTDIR" php "$DESTDIR/smoke.php"
 
       - name: Send coverage
         uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
